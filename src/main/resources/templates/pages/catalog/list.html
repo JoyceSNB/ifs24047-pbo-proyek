@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org" 
+      th:replace="~{layouts/base :: layout(~{::title}, ~{::#content}, ~{::scripts})}">
+<head>
+    <title th:text="${title}">Katalog Bunga</title>
+</head>
+<body>
+    <div id="content" class="container mt-5">
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <h2 class="text-primary"><i class="fas fa-leaf"></i> Katalog Koleksi Bunga</h2>
+            <div class="btn-group">
+                <button type="button" class="btn btn-success shadow-sm" data-bs-toggle="modal" data-bs-target="#modal-add-flower">
+                    <i class="fas fa-plus-circle"></i> Tambah Bunga
+                </button>
+                <button type="button" class="btn btn-info text-white shadow-sm ms-2" data-bs-toggle="modal" data-bs-target="#modal-chart">
+                    <i class="fas fa-chart-pie"></i> Statistik
+                </button>
+            </div>
+        </div>
+
+        <div th:if="${message}" class="alert alert-success alert-dismissible fade show" role="alert">
+            <i class="fas fa-check-circle me-2"></i><span th:text="${message}"></span>
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+        <div th:if="${error}" class="alert alert-danger alert-dismissible fade show" role="alert">
+            <i class="fas fa-exclamation-circle me-2"></i><span th:text="${error}"></span>
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+
+        <div class="card shadow-sm border-0">
+            <div class="card-body p-0">
+                <div class="table-responsive">
+                    <table class="table table-hover table-striped mb-0 align-middle">
+                        <thead class="bg-light text-dark">
+                            <tr>
+                                <th class="py-3 ps-3">No</th>
+                                <th class="py-3">Foto</th>
+                                <th class="py-3">Nama Bunga</th>
+                                <th class="py-3">Spesies</th>
+                                <th class="py-3">Harga</th>
+                                <th class="py-3">Stok</th>
+                                <th class="py-3 text-end pe-3">Aksi</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr th:if="${#lists.isEmpty(flowers)}">
+                                <td colspan="7" class="text-center py-5 text-muted">
+                                    <i class="fas fa-seedling fa-3x mb-3"></i>
+                                    <p>Belum ada koleksi bunga. Silakan tambah data baru.</p>
+                                </td>
+                            </tr>
+                            <tr th:each="flower, stat : ${flowers}">
+                                <td class="ps-3 fw-bold" th:text="${stat.count}">1</td>
+                                <td>
+                                    <img th:if="${flower.imageUrl != null}" 
+                                         th:src="@{/uploads/{path}(path=${flower.imageUrl.replace('uploads/', '')})}"
+                                         class="rounded shadow-sm" 
+                                         style="width: 60px; height: 60px; object-fit: cover;" 
+                                         alt="Flower Img">
+                                    <span th:unless="${flower.imageUrl != null}" class="badge bg-secondary">No Image</span>
+                                </td>
+                                <td class="fw-semibold text-primary" th:text="${flower.name}">Mawar</td>
+                                <td th:text="${flower.species} ?: '-'">Rosa</td>
+                                <td th:text="${'Rp ' + #numbers.formatDecimal(flower.price, 0, 'COMMA', 0, 'POINT')}">Rp 50.000</td>
+                                <td>
+                                    <span th:class="${flower.stock > 0 ? 'badge bg-success' : 'badge bg-danger'}" 
+                                          th:text="${flower.stock > 0 ? flower.stock + ' pcs' : 'Habis'}">10</span>
+                                </td>
+                                <td class="text-end pe-3">
+                                    <a th:href="@{/catalog/detail/{id}(id=${flower.id})}" class="btn btn-sm btn-info text-white" title="Detail">
+                                        <i class="fas fa-eye"></i>
+                                    </a>
+                                    <button type="button" class="btn btn-sm btn-warning text-white" data-bs-toggle="modal" 
+                                            th:data-bs-target="'#modal-edit-flower-' + ${flower.id}" title="Edit">
+                                        <i class="fas fa-edit"></i>
+                                    </button>
+                                    <a th:href="@{/catalog/delete/{id}(id=${flower.id})}" class="btn btn-sm btn-danger" 
+                                       onclick="return confirm('Yakin ingin menghapus bunga ini?')" title="Hapus">
+                                        <i class="fas fa-trash"></i>
+                                    </a>
+                                </td>
+                                
+                                <th:block th:replace="~{models/catalog/edit :: modal(flower=${flower})}"></th:block>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div th:replace="~{models/catalog/add :: modal}"></div>
+    <th:block id="scripts">
+        </th:block>
+</body>
+</html>

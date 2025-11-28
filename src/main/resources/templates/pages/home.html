@@ -6,169 +6,101 @@
   lang="id"
 >
   <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Spring Boot Todolist</title>
+    <title>Aplikasi Katalog Bunga</title>
   </head>
   <body>
-    <div layout:fragment="content" class="mt-3">
-      <div class="card">
-        <div class="card-header d-flex">
-          <div class="flex-fill">
-            <h3>Hay, [[${auth.name}]]</h3>
-          </div>
-          <div>
-            <div>
-              <a th:href="@{/auth/logout}" class="btn btn-sm btn-danger"
-                >Keluar</a
-              >
-            </div>
-          </div>
-        </div>
-        <div class="card-body">
-          <div class="d-flex mb-2">
-            <div class="flex-fill">
-              <h3>Daftar Todo List</h3>
-            </div>
-            <div>
-              <button
-                class="btn btn-primary"
-                data-bs-toggle="modal"
-                data-bs-target="#addTodoModal"
-              >
-                Tambah Todo
-              </button>
-            </div>
-          </div>
-          <table class="table table-striped">
-            <tr class="table-light">
-              <th>No</th>
-              <th>Judul</th>
-              <th>Dibuat pada</th>
-              <th>Diubah pada</th>
-              <th>Status</th>
-              <th>Tindakan</th>
-            </tr>
-
-            <tr th:each="todo, status : ${todos}">
-              <td th:text="${status.index + 1}"></td>
-              <td th:text="${todo.title}"></td>
-              <td
-                th:text="${#temporals.format(todo.createdAt, 'd MMMM yyyy, HH:mm')}"
-              ></td>
-              <td
-                th:text="${#temporals.format(todo.updatedAt, 'd MMMM yyyy, HH:mm')}"
-              ></td>
-              <td>
-                <span th:if="${todo.finished}" class="badge bg-success"
-                  >Selesai</span
-                >
-                <span th:unless="${todo.finished}" class="badge bg-danger"
-                  >Belum selesai</span
-                >
-              </td>
-              <td>
-                <a
-                  th:href="@{/todos/{todoId}(todoId=${todo.id})}"
-                  class="btn btn-sm btn-info"
-                >
-                  Detail
-                </a>
-                <button
-                  th:id="|editTodoButton_${todo.id}|"
-                  th:attr="onclick=|prepareEditTodo(`${todo.id}`, `${todo.title}`, `${todo.description}`, ${todo.finished})|"
-                  class="btn btn-sm btn-warning"
-                >
-                  Edit
-                </button>
-                <button
-                  th:id="|deleteTodoButton_${todo.id}|"
-                  th:attr="onclick=|prepareDeleteTodo(`${todo.id}`, `${todo.title}`)|"
-                  class="btn btn-sm btn-danger"
-                >
-                  Hapus
-                </button>
-              </td>
-            </tr>
-            <tr th:if="${#lists.isEmpty(todos)}">
-              <td colspan="6" class="text-center">
-                Belum ada data todo yang tersedia.
-              </td>
-            </tr>
-          </table>
+    <div layout:fragment="content" class="mt-4">
+      
+      <div class="card mb-4 shadow-sm">
+        <div class="card-body d-flex align-items-center justify-content-between">
+          <h4 class="m-0">Selamat Datang, <span th:text="${auth.name}" class="fw-bold text-primary">User</span> 👋</h4>
+          <a th:href="@{/auth/logout}" class="btn btn-outline-danger btn-sm">Keluar</a>
         </div>
       </div>
 
-      <!-- Modals -->
-      <div th:replace="~{models/todos/add :: addTodoModal}"></div>
-      <div th:replace="~{models/todos/edit :: editTodoModal}"></div>
-      <div th:replace="~{models/todos/delete :: deleteTodoModal}"></div>
+      <div class="card shadow">
+        <div class="card-body">
+          
+          <div class="d-flex mb-4 align-items-center justify-content-between">
+            <h3 class="card-title text-success"><i class="bi bi-flower1"></i> Katalog Bunga</h3>
+            <button class="btn btn-success" data-bs-toggle="modal" data-bs-target="#addFlowerModal">
+              <i class="bi bi-plus-lg"></i> Tambah Bunga
+            </button>
+          </div>
+
+          <div class="table-responsive">
+            <table class="table table-hover align-middle table-bordered">
+              <thead class="table-light text-center">
+                <tr>
+                  <th style="width: 100px;">Foto</th>
+                  <th>Nama Bunga</th>
+                  <th>Varietas</th>
+                  <th>Harga</th>
+                  <th>Stok</th>
+                  <th style="width: 150px;">Aksi</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr th:each="item : ${listFlowers}">
+                  <td class="text-center">
+                    <img th:if="${item.imagePath != null}" 
+                         th:src="@{'/uploads/' + ${item.imagePath}}" 
+                         class="rounded shadow-sm" 
+                         style="width: 70px; height: 70px; object-fit: cover;">
+                    <span th:unless="${item.imagePath != null}" class="badge bg-secondary">No Img</span>
+                  </td>
+                  <td class="fw-bold" th:text="${item.name}">Mawar</td>
+                  <td th:text="${item.variety}">Merah</td>
+                  <td class="text-end" th:text="${'Rp ' + #numbers.formatDecimal(item.price, 0, 'POINT', 0, 'COMMA')}">Rp 50.000</td>
+                  <td class="text-center">
+                    <span th:text="${item.stock}" 
+                          th:class="${item.stock > 5 ? 'badge bg-success' : 'badge bg-warning text-dark'}">
+                      10
+                    </span>
+                  </td>
+                  <td class="text-center">
+                    <button class="btn btn-sm btn-warning me-1"
+                      th:attr="onclick=|prepareEditFlower('${item.id}', '${item.name}', '${item.variety}', '${item.price}', '${item.stock}')|">
+                      <i class="bi bi-pencil-square"></i>
+                    </button>
+                    <button class="btn btn-sm btn-danger"
+                      th:attr="onclick=|prepareDeleteFlower('${item.id}', '${item.name}')|">
+                      <i class="bi bi-trash"></i>
+                    </button>
+                  </td>
+                </tr>
+                <tr th:if="${#lists.isEmpty(listFlowers)}">
+                  <td colspan="6" class="text-center text-muted py-5">
+                    <i class="bi bi-inbox fs-1 d-block mb-2"></i>
+                    <em>Belum ada koleksi bunga. Silakan tambah data baru.</em>
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <div th:replace="~{models/flowers/add :: addFlowerModal}"></div>
+      <div th:replace="~{models/flowers/edit :: editFlowerModal}"></div>
+      <div th:replace="~{models/flowers/delete :: deleteFlowerModal}"></div>
     </div>
 
-    <!-- Scripts -->
     <script layout:fragment="others-js">
-      function prepareEditTodo(id, title, description, finished) {
-        /* Set nilai pada form edit */
-        document.getElementById("editTodoId").value = id;
-        document.getElementById("editTodoTitle").value = title;
-        document.getElementById("editTodoDescription").value = description;
-        document.getElementById("editTodoFinished").value = finished
-          ? "1"
-          : "0";
-
-        /* Tampilkan modal */
-        var editModal = new bootstrap.Modal(
-          document.getElementById("editTodoModal")
-        );
-        editModal.show();
+      function prepareEditFlower(id, name, variety, price, stock) {
+        document.getElementById("editFlowerId").value = id;
+        document.getElementById("editFlowerName").value = name;
+        document.getElementById("editFlowerVariety").value = variety;
+        document.getElementById("editFlowerPrice").value = price;
+        document.getElementById("editFlowerStock").value = stock;
+        new bootstrap.Modal(document.getElementById("editFlowerModal")).show();
       }
 
-      function prepareDeleteTodo(id, title) {
-        /* Set nilai pada form delete */
-        document.getElementById("deleteTodoId").value = id;
-        document.getElementById("deleteTodoTitle").innerText = title;
-
-        /* Tampilkan modal */
-        var deleteModal = new bootstrap.Modal(
-          document.getElementById("deleteTodoModal")
-        );
-        deleteModal.show();
+      function prepareDeleteFlower(id, name) {
+        document.getElementById("deleteFlowerId").value = id;
+        document.getElementById("deleteFlowerName").innerText = name;
+        new bootstrap.Modal(document.getElementById("deleteFlowerModal")).show();
       }
-
-      document.addEventListener("DOMContentLoaded", function () {
-        /* Cek apakah modal add perlu dibuka otomatis */
-        var addTodoModalOpen = "[[${addTodoModalOpen}]]" === "true";
-        if (addTodoModalOpen) {
-          var addModal = new bootstrap.Modal(
-            document.getElementById("addTodoModal")
-          );
-          addModal.show();
-        }
-
-        /* Cek apakah modal edit perlu dibuka otomatis */
-        var editTodoModalOpen = "[[${editTodoModalOpen}]]" === "true";
-        if (editTodoModalOpen) {
-          const editTodoModalId = "[[${editTodoModalId}]]";
-          const buttonEdit = document.getElementById(
-            `editTodoButton_${editTodoModalId}`
-          );
-          if (buttonEdit) {
-            buttonEdit.click();
-          }
-        }
-
-        /* Cek apakah modal delete perlu dibuka otomatis */
-        var deleteTodoModalOpen = "[[${deleteTodoModalOpen}]]" === "true";
-        if (deleteTodoModalOpen) {
-          const deleteTodoModalId = "[[${deleteTodoModalId}]]";
-          const buttonDelete = document.getElementById(
-            `deleteTodoButton_${deleteTodoModalId}`
-          );
-          if (buttonDelete) {
-            buttonDelete.click();
-          }
-        }
-      });
     </script>
   </body>
 </html>

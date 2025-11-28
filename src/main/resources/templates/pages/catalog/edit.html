@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<div th:fragment="editFlowerModal" class="modal fade" id="editFlowerModal" tabindex="-1">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <form th:action="@{/flowers/save}" method="post" enctype="multipart/form-data">
+        <div class="modal-header">
+          <h5 class="modal-title">Edit Data Bunga</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+        </div>
+        <div class="modal-body">
+          <input type="hidden" name="id" id="editFlowerId">
+          
+          <div class="mb-3">
+            <label class="form-label">Nama Bunga</label>
+            <input type="text" name="name" id="editFlowerName" class="form-control" required>
+          </div>
+          <div class="mb-3">
+            <label class="form-label">Varietas</label>
+            <input type="text" name="variety" id="editFlowerVariety" class="form-control" required>
+          </div>
+          <div class="row">
+            <div class="col-6 mb-3">
+                <label class="form-label">Harga</label>
+                <input type="number" name="price" id="editFlowerPrice" class="form-control" required>
+            </div>
+            <div class="col-6 mb-3">
+                <label class="form-label">Stok</label>
+                <input type="number" name="stock" id="editFlowerStock" class="form-control" required>
+            </div>
+          </div>
+          <div class="mb-3">
+            <label class="form-label">Ubah Foto (Opsional)</label>
+            <input type="file" name="image" class="form-control" accept="image/*">
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Batal</button>
+          <button type="submit" class="btn btn-warning">Update</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+</html>
