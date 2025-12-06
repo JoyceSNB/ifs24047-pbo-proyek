@@ -1,43 +1,57 @@
 package org.delcom.app.entities;
 
-import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 import java.time.LocalDateTime;
+import java.util.UUID;
+import static org.junit.jupiter.api.Assertions.*;
 
-public class FlowerTest {
+class FlowerTest {
 
     @Test
-    void testFlowerEntity() {
+    void testFlowerEntity_AllAttributes() {
         Flower flower = new Flower();
         
-        // Test Setters
-        flower.setId(1L);
-        flower.setName("Mawar");
-        flower.setVariety("Merah");
-        flower.setStock(10);
-        flower.setPrice(50000.0);
-        flower.setImagePath("mawar.jpg");
+        // Setup Data Dummy (10 Atribut)
+        UUID id = UUID.randomUUID();
+        UUID userId = UUID.randomUUID();
         LocalDateTime now = LocalDateTime.now();
-        flower.setCreatedAt(now);
 
-        // Test Getters
-        Assertions.assertEquals(1L, flower.getId());
-        Assertions.assertEquals("Mawar", flower.getName());
-        Assertions.assertEquals("Merah", flower.getVariety());
-        Assertions.assertEquals(10, flower.getStock());
-        Assertions.assertEquals(50000.0, flower.getPrice());
-        Assertions.assertEquals("mawar.jpg", flower.getImagePath());
-        Assertions.assertEquals(now, flower.getCreatedAt());
+        flower.setId(id);
+        flower.setUserId(userId);
+        flower.setFlowerName("Anggrek Bulan");
+        flower.setSpecies("Phalaenopsis amabilis");
+        flower.setPrice(150000.0);
+        flower.setStock(50);
+        flower.setImagePath("anggrek.jpg");
+        flower.setDescription("Anggrek cantik berwarna putih");
+        flower.setCreatedAt(now);
+        flower.setUpdatedAt(now);
+
+        assertEquals(id, flower.getId());
+        assertEquals(userId, flower.getUserId());
+        assertEquals("Anggrek Bulan", flower.getFlowerName());
+        assertEquals("Phalaenopsis amabilis", flower.getSpecies());
+        assertEquals(150000.0, flower.getPrice());
+        assertEquals(50, flower.getStock());
+        assertEquals("anggrek.jpg", flower.getImagePath());
+        assertEquals("Anggrek cantik berwarna putih", flower.getDescription());
+        assertEquals(now, flower.getCreatedAt());
+        assertEquals(now, flower.getUpdatedAt());
     }
 
     @Test
-    void testPrePersist() {
-        // Simulasi PrePersist manual karena ini unit test (bukan integration test)
+    void testLifecycleMethods() {
         Flower flower = new Flower();
-        // Kita panggil method protected via subclass atau reflection, 
-        // tapi untuk simple test, kita pastikan method onCreate ada.
-        // Cara termudah tes logika ini biasanya di Integration Test, 
-        // tapi untuk coverage POJO, cukup pastikan field ada.
-        Assertions.assertNull(flower.getCreatedAt());
+        
+        flower.onCreate();
+        assertNotNull(flower.getCreatedAt());
+        assertNotNull(flower.getUpdatedAt());
+
+        LocalDateTime oldTime = flower.getUpdatedAt();
+
+        try { Thread.sleep(10); } catch (InterruptedException e) {}
+        
+        flower.onUpdate();
+        assertNotEquals(oldTime, flower.getUpdatedAt());
     }
 }

@@ -29,8 +29,6 @@ public class UserController {
     @Autowired
     protected AuthContext authContext;
 
-    // Melakukan registrasi pengguna
-    // -------------------------------
     @PostMapping("/auth/register")
     public ResponseEntity<ApiResponse<Map<String, UUID>>> registerUser(@RequestBody User reqUser) {
         if (reqUser.getName() == null || reqUser.getName().isEmpty()) {
@@ -41,7 +39,6 @@ public class UserController {
             return ResponseEntity.badRequest().body(new ApiResponse<>("fail", "Data password tidak valid", null));
         }
 
-        // Cek apakah email sudah terdaftar
         User existingUser = userService.getUserByEmail(reqUser.getEmail());
         if (existingUser != null) {
             return ResponseEntity.badRequest()
@@ -63,7 +60,6 @@ public class UserController {
     }
 
     // Melakukan login pengguna
-    // -------------------------------
     @PostMapping("/auth/login")
     public ResponseEntity<ApiResponse<Map<String, String>>> loginUser(@RequestBody User reqUser) {
         if (reqUser.getEmail() == null || reqUser.getEmail().isEmpty()) {
@@ -103,7 +99,6 @@ public class UserController {
                 Map.of("authToken", jwtToken)));
     }
 
-    // Get informasi pengguna
     @GetMapping("/users/me")
     public ResponseEntity<ApiResponse<Map<String, User>>> getUserInfo() {
 
@@ -160,7 +155,6 @@ public class UserController {
 
         User authUser = authContext.getAuthUser();
 
-        // Ambil old & new password
         String oldPassword = passwordPayload.get("password");
         String newPassword = passwordPayload.get("newPassword");
 
@@ -190,5 +184,4 @@ public class UserController {
 
         return ResponseEntity.ok(new ApiResponse<>("success", "Password berhasil diupdate", null));
     }
-
 }

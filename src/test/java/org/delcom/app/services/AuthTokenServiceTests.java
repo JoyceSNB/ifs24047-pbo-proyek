@@ -18,14 +18,11 @@ public class AuthTokenServiceTests {
         UUID userId = UUID.randomUUID();
         AuthToken authToken = new AuthToken(userId, "token");
 
-        // Membuat user repository palsu
         AuthTokenRepository authTokenRepository = Mockito.mock(AuthTokenRepository.class);
 
-        // Membuat instance AuthToken dengan repository palsu
         AuthTokenService authTokenService = new AuthTokenService(authTokenRepository);
         assertTrue(authTokenService != null);
 
-        // Menguji createAuthToken
         {
             Mockito.when(authTokenRepository.save(Mockito.any(AuthToken.class))).thenReturn(authToken);
 
@@ -35,7 +32,6 @@ public class AuthTokenServiceTests {
             assertEquals(authToken.getToken(), result.getToken());
         }
 
-        // Menguji findUserToken
         {
             Mockito.when(authTokenRepository.findUserToken(userId, "token")).thenReturn(authToken);
 
@@ -45,7 +41,6 @@ public class AuthTokenServiceTests {
             assertEquals(authToken.getToken(), result.getToken());
         }
 
-        // Menguji deleteAuthToken
         {
             Mockito.doNothing().when(authTokenRepository).deleteByUserId(userId);
 

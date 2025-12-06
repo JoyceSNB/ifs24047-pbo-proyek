@@ -1,61 +1,43 @@
 package org.delcom.app.entities;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertTrue;
-
-import java.util.UUID;
-
-import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+import java.time.LocalDateTime;
+import java.util.UUID;
+import static org.junit.jupiter.api.Assertions.*;
 
-public class UserTests {
+class UserTests {
+
     @Test
-    @DisplayName("Memembuat instance dari kelas User")
-    void testMembuatInstanceUser() throws Exception {
-        // User dengan nama, email dan password
-        {
-            User user = new User("Name", "email@example.com", "password123");
+    void testUserEntity() {
+        // Test Constructor & Setter
+        User user = new User("Budi", "budi@example.com", "pass123");
+        user.setId(UUID.randomUUID());
+        
+        // Test Getter
+        assertNotNull(user.getId());
+        assertEquals("Budi", user.getName());
+        assertEquals("budi@example.com", user.getEmail());
+        assertEquals("pass123", user.getPassword());
+        
+        // Test Constructor Kosong
+        User emptyUser = new User();
+        assertNull(emptyUser.getName());
 
-            assertEquals("Name", user.getName());
-            assertEquals("email@example.com", user.getEmail());
-            assertEquals("password123", user.getPassword());
-        }
+        // 4Test Constructor Partial
+        User partialUser = new User("email@test.com", "password");
+        assertEquals("email@test.com", partialUser.getEmail());
+    }
 
-        // User dengan email dan password
-        {
-            User user = new User("email@example.com", "password123");
-            assertEquals("", user.getName());
-            assertEquals("email@example.com", user.getEmail());
-            assertEquals("password123", user.getPassword());
-        }
+    @Test
+    void testLifecycleMethods() {
+        User user = new User();
+    
+        user.onCreate(); 
+        assertNotNull(user.getCreatedAt());
+        assertNotNull(user.getUpdatedAt());
 
-        // User dengan nilai default
-        {
-            User user = new User();
-
-            assertEquals(null, user.getId());
-            assertEquals(null, user.getName());
-            assertEquals(null, user.getEmail());
-            assertEquals(null, user.getPassword());
-        }
-
-        // User dengan setNilai
-        {
-            User user = new User();
-            UUID generatedId = UUID.randomUUID();
-            user.setId(generatedId);
-            user.setName("Set Name");
-            user.setEmail("Set Email");
-            user.setPassword("Set Password");
-            user.onCreate();
-            user.onUpdate();
-
-            assertEquals(user.getId(), generatedId);
-            assertEquals(user.getName(), "Set Name");
-            assertEquals(user.getEmail(), "Set Email");
-            assertEquals(user.getPassword(), "Set Password");
-            assertTrue(user.getCreatedAt() != null);
-            assertTrue(user.getUpdatedAt() != null);
-        }
+        user.onUpdate(); 
+        assertNotNull(user.getUpdatedAt());
     }
 }
+

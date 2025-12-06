@@ -1,390 +1,281 @@
 package org.delcom.app.controllers;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertTrue;
-
-import java.util.List;
-import java.util.Map;
-import java.util.UUID;
-
 import org.delcom.app.configs.ApiResponse;
 import org.delcom.app.configs.AuthContext;
 import org.delcom.app.entities.AuthToken;
 import org.delcom.app.entities.User;
 import org.delcom.app.services.AuthTokenService;
 import org.delcom.app.services.UserService;
-import org.delcom.app.utils.JwtUtil;
-import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.mockito.Mockito;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.InjectMocks;
+import org.mockito.Mock;
+import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 
-public class UserControllerTests {
+import java.util.HashMap;
+import java.util.Map;
+import java.util.UUID;
+
+import static org.junit.jupiter.api.Assertions.*;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.*;
+
+@ExtendWith(MockitoExtension.class)
+class UserControllerTest {
+
+    @Mock private UserService userService;
+    @Mock private AuthTokenService authTokenService;
+    @Mock private AuthContext authContext;
+
+    @InjectMocks private UserController userController;
+
+    @BeforeEach
+    void setUp() {
+        // Inject Manual untuk menghindari NullPointerException
+        userController.authContext = this.authContext;
+    }
+
+    // ================= REGISTER TESTS =================
+
     @Test
-    @DisplayName("Pengujian UserController dengan berbagai skenario")
-    public void testVariousUserController() {
+    void registerUser_Success() {
+        User req = new User("Test Name", "test@mail.com", "password123");
+        when(userService.getUserByEmail(req.getEmail())).thenReturn(null);
+        
+        User createdUser = new User("Test Name", "test@mail.com", "password123");
+        createdUser.setId(UUID.randomUUID());
+        when(userService.createUser(anyString(), anyString(), anyString())).thenReturn(createdUser);
 
-        // Mock AuthService
-        AuthTokenService authTokenService = Mockito.mock(AuthTokenService.class);
+        ResponseEntity<ApiResponse<Map<String, UUID>>> response = userController.registerUser(req);
+        
+        // Gunakan .getStatusCode() untuk membandingkan dengan Enum HttpStatus
+        assertEquals(HttpStatus.OK, response.getStatusCode());
+        assertEquals("success", response.getBody().getStatus());
+    }
 
-        // Mock UserService
-        UserService userService = Mockito.mock(UserService.class);
+    @Test
+    void registerUser_InvalidInput() {
+        // Gunakan .getStatusCode().value() untuk membandingkan dengan int (400)
+        
+        // 1. Name Invalid
+        assertEquals(400, userController.registerUser(new User(null, "email@mail.com", "pass")).getStatusCode().value());
+        assertEquals(400, userController.registerUser(new User("", "email@mail.com", "pass")).getStatusCode().value());
+        
+        // 2. Email Invalid
+        assertEquals(400, userController.registerUser(new User("name", null, "pass")).getStatusCode().value());
+        assertEquals(400, userController.registerUser(new User("name", "", "pass")).getStatusCode().value());
+        
+        // 3. Password Invalid
+        assertEquals(400, userController.registerUser(new User("name", "email@mail.com", null)).getStatusCode().value());
+        assertEquals(400, userController.registerUser(new User("name", "email@mail.com", "")).getStatusCode().value());
+    }
 
-        UserController userController = new UserController(userService, authTokenService);
-        userController.authContext = new AuthContext();
+    @Test
+    void registerUser_EmailAlreadyExists() {
+        User req = new User("Name", "exist@mail.com", "pass");
+        when(userService.getUserByEmail(req.getEmail())).thenReturn(new User());
+        
+        // Bandingkan Enum dengan Enum
+        assertEquals(HttpStatus.BAD_REQUEST, userController.registerUser(req).getStatusCode());
+    }
 
-        // Menguji method registerUser
-        {
-            // Data tidak valid
-            {
-                List<User> invalidUsers = List.of(
-                        // Nama Null
-                        new User(null, "email@example.com", "password123"),
-                        // Nama Kosong
-                        new User("", "email@example.com", "password123"),
-                        // Email Null
-                        new User("User", null, "password123"),
-                        // Email Kosong
-                        new User("User", "", "password123"),
-                        // Password Null
-                        new User("User", "email@example.com", null),
-                        // Password Kosong
-                        new User("User", "email@example.com", ""));
+    // ================= LOGIN TESTS =================
 
-                ResponseEntity<ApiResponse<Map<String, UUID>>> result;
-                for (User user : invalidUsers) {
-                    result = userController.registerUser(user);
-                    assert (result != null);
-                    assert (result.getStatusCode().is4xxClientError());
-                    assert (result.getBody().getStatus().equals("fail"));
-                }
-            }
+    @Test
+    void loginUser_Success() {
+        User req = new User(null, "test@mail.com", "password123");
+        User dbUser = new User("Name", "test@mail.com", "ignore");
+        dbUser.setId(UUID.randomUUID());
+        dbUser.setPassword(new BCryptPasswordEncoder().encode("password123"));
 
-            // Email sudah terdaftar
-            {
-                User existingUser = new User("Existing User", "existing@example.com", "password123");
-                Mockito.when(userService.getUserByEmail("existing@example.com")).thenReturn(existingUser);
+        when(userService.getUserByEmail(req.getEmail())).thenReturn(dbUser);
+        
+        AuthToken newToken = new AuthToken(dbUser.getId(), "token-abc");
+        when(authTokenService.createAuthToken(any(AuthToken.class))).thenReturn(newToken);
 
-                ResponseEntity<ApiResponse<Map<String, UUID>>> result = userController.registerUser(existingUser);
-                assert (result != null);
-                assert (result.getStatusCode().is4xxClientError());
-                assert (result.getBody().getStatus().equals("fail"));
-            }
+        ResponseEntity<ApiResponse<Map<String, String>>> response = userController.loginUser(req);
+        assertEquals(HttpStatus.OK, response.getStatusCode());
+        assertNotNull(response.getBody().getData().get("authToken"));
+    }
 
-            // Registrasi sukses
-            {
-                User newUser = new User("New User", "new@example.com", "password123");
-                newUser.setId(UUID.randomUUID());
+    @Test
+    void loginUser_WithExistingToken() {
+        User req = new User(null, "test@mail.com", "password123");
+        User dbUser = new User("Name", "test@mail.com", "ignore");
+        dbUser.setId(UUID.randomUUID());
+        dbUser.setPassword(new BCryptPasswordEncoder().encode("password123"));
 
-                Mockito.when(userService.getUserByEmail("new@example.com")).thenReturn(null);
-                Mockito.when(userService.createUser(Mockito.any(String.class), Mockito.any(String.class),
-                        Mockito.any(String.class)))
-                        .thenReturn(newUser);
+        when(userService.getUserByEmail(req.getEmail())).thenReturn(dbUser);
+        
+        // Simulasi token lama ada
+        when(authTokenService.findUserToken(eq(dbUser.getId()), anyString())).thenReturn(new AuthToken());
+        
+        AuthToken newToken = new AuthToken(dbUser.getId(), "token-abc");
+        when(authTokenService.createAuthToken(any(AuthToken.class))).thenReturn(newToken);
 
-                ResponseEntity<ApiResponse<Map<String, UUID>>> result = userController.registerUser(newUser);
-                assert (result != null);
-                assert (result.getStatusCode().is2xxSuccessful());
-                assert (result.getBody().getStatus().equals("success"));
-            }
-        }
+        userController.loginUser(req);
+        
+        verify(authTokenService).deleteAuthToken(dbUser.getId());
+    }
 
-        // Menguji method loginUser
-        {
-            // Data tidak valid
-            {
-                List<User> invalidUsers = List.of(
-                        // Email Null
-                        new User(null, "password123"),
-                        // Email Kosong
-                        new User("", "password123"),
-                        // Password Null
-                        new User("user@example.com", null),
-                        // Password Kosong
-                        new User("user@example.com", ""));
+    @Test
+    void loginUser_InvalidInput() {
+        assertEquals(400, userController.loginUser(new User(null, null, "pass")).getStatusCode().value());
+        assertEquals(400, userController.loginUser(new User(null, "email", null)).getStatusCode().value());
+        assertEquals(400, userController.loginUser(new User(null, "", "pass")).getStatusCode().value());
+        assertEquals(400, userController.loginUser(new User(null, "email", "")).getStatusCode().value());
+    }
 
-                ResponseEntity<ApiResponse<Map<String, String>>> result;
-                for (User user : invalidUsers) {
-                    result = userController.loginUser(user);
-                    assert (result != null);
-                    assert (result.getStatusCode().is4xxClientError());
-                    assert (result.getBody().getStatus().equals("fail"));
-                }
-            }
+    @Test
+    void loginUser_UserNotFound() {
+        User req = new User(null, "ghost@mail.com", "pass");
+        when(userService.getUserByEmail(req.getEmail())).thenReturn(null);
+        assertEquals(400, userController.loginUser(req).getStatusCode().value());
+    }
 
-            // Email atau password salah
-            {
-                String password = "password123";
-                String hashedPassword = new BCryptPasswordEncoder()
-                        .encode(password);
-                UUID userId = UUID.randomUUID();
+    @Test
+    void loginUser_WrongPassword() {
+        User req = new User(null, "test@mail.com", "wrongpass");
+        User dbUser = new User("Name", "test@mail.com", "ignore");
+        dbUser.setPassword(new BCryptPasswordEncoder().encode("realpass")); 
 
-                User fakeUser = new User("Fake User", "user@example.com", hashedPassword);
-                fakeUser.setId(userId);
+        when(userService.getUserByEmail(req.getEmail())).thenReturn(dbUser);
+        assertEquals(400, userController.loginUser(req).getStatusCode().value());
+    }
+    
+    @Test
+    void loginUser_TokenCreationFail() {
+        User req = new User(null, "test@mail.com", "pass");
+        User dbUser = new User("Name", "test@mail.com", "ignore");
+        dbUser.setId(UUID.randomUUID());
+        dbUser.setPassword(new BCryptPasswordEncoder().encode("pass"));
 
-                // User tidak ditemukan
-                Mockito.when(userService.getUserByEmail("user@example.com")).thenReturn(null);
+        when(userService.getUserByEmail(req.getEmail())).thenReturn(dbUser);
+        when(authTokenService.createAuthToken(any())).thenReturn(null);
 
-                ResponseEntity<ApiResponse<Map<String, String>>> result = userController
-                        .loginUser(fakeUser);
-                assert (result != null);
-                assert (result.getStatusCode().is4xxClientError());
-                assert (result.getBody().getStatus().equals("fail"));
+        assertEquals(500, userController.loginUser(req).getStatusCode().value());
+    }
 
-                // Password salah
-                Mockito.when(userService.getUserByEmail("user@example.com")).thenReturn(fakeUser);
-                ResponseEntity<ApiResponse<Map<String, String>>> result2 = userController
-                        .loginUser(new User("user@example.com", "wrongpassword"));
-                assert (result2 != null);
-                assert (result2.getStatusCode().is4xxClientError());
-                assert (result2.getBody().getStatus().equals("fail"));
-            }
+    // ================= USER INFO TESTS =================
 
-            // Gagagal membuat auth token
-            {
-                String password = "password123";
-                String hashedPassword = new BCryptPasswordEncoder()
-                        .encode(password);
-                UUID userId = UUID.randomUUID();
+    @Test
+    void getUserInfo_Success() {
+        lenient().when(authContext.isAuthenticated()).thenReturn(true);
+        User authUser = new User("Auth Name", "auth@mail.com", "pass");
+        lenient().when(authContext.getAuthUser()).thenReturn(authUser);
 
-                String bearerToken = JwtUtil.generateToken(userId);
-                AuthToken fakeAuthToken = new AuthToken(userId, bearerToken);
+        ResponseEntity<ApiResponse<Map<String, User>>> response = userController.getUserInfo();
+        assertEquals(HttpStatus.OK, response.getStatusCode());
+        assertEquals("auth@mail.com", response.getBody().getData().get("user").getEmail());
+    }
 
-                User fakeReqUser = new User("Fake User", "user@example.com", password);
-                fakeReqUser.setId(userId);
+    @Test
+    void getUserInfo_Unauthenticated() {
+        lenient().when(authContext.isAuthenticated()).thenReturn(false);
+        assertEquals(401, userController.getUserInfo().getStatusCode().value());
+    }
 
-                User fakeUser = new User("Fake User", "user@example.com", hashedPassword);
-                fakeUser.setId(userId);
+    // ================= UPDATE USER TESTS =================
 
-                Mockito.when(userService.getUserByEmail("user@example.com")).thenReturn(fakeUser);
+    @Test
+    void updateUser_Success() {
+        lenient().when(authContext.isAuthenticated()).thenReturn(true);
+        User authUser = new User(); authUser.setId(UUID.randomUUID());
+        lenient().when(authContext.getAuthUser()).thenReturn(authUser);
 
-                // Auth token gagal disimpan dengan terdapat token lama
-                {
-                    // Hapus token lama jika ada
-                    Mockito.when(authTokenService.findUserToken(Mockito.any(UUID.class), Mockito.anyString()))
-                            .thenReturn(fakeAuthToken);
-                    Mockito.doNothing().when(authTokenService).deleteAuthToken(Mockito.any(UUID.class));
+        User req = new User("New Name", "new@mail.com", "pass");
+        when(userService.updateUser(eq(authUser.getId()), eq(req.getName()), eq(req.getEmail()))).thenReturn(req);
 
-                    Mockito.when(authTokenService.createAuthToken(Mockito.any(AuthToken.class))).thenReturn(null);
+        // FIX: getStatusCode()
+        assertEquals(HttpStatus.OK, userController.updateUser(req).getStatusCode());
+    }
 
-                    ResponseEntity<ApiResponse<Map<String, String>>> result = userController
-                            .loginUser(fakeReqUser);
-                    assertTrue(result != null);
-                    assertTrue(result.getStatusCode().is5xxServerError());
-                    assertEquals(result.getBody().getStatus(), "error");
-                }
+    @Test
+    void updateUser_Failures() {
+        lenient().when(authContext.isAuthenticated()).thenReturn(false);
+        assertEquals(401, userController.updateUser(new User()).getStatusCode().value());
 
-                // Auth token gagal disimpan dengan tidak terdapat token lama
-                {
-                    Mockito.when(authTokenService.findUserToken(Mockito.any(UUID.class), Mockito.anyString()))
-                            .thenReturn(null);
+        lenient().when(authContext.isAuthenticated()).thenReturn(true);
+        lenient().when(authContext.getAuthUser()).thenReturn(new User());
+        
+        // Invalid inputs
+        assertEquals(400, userController.updateUser(new User(null, "mail", "p")).getStatusCode().value());
+        assertEquals(400, userController.updateUser(new User("", "mail", "p")).getStatusCode().value());
+        assertEquals(400, userController.updateUser(new User("name", null, "p")).getStatusCode().value());
+        assertEquals(400, userController.updateUser(new User("name", "", "p")).getStatusCode().value());
 
-                    Mockito.when(authTokenService.createAuthToken(Mockito.any(AuthToken.class))).thenReturn(null);
+        // Not Found
+        User req = new User("Valid", "valid@mail.com", "pass");
+        User authUser = new User(); authUser.setId(UUID.randomUUID());
+        when(authContext.getAuthUser()).thenReturn(authUser);
+        when(userService.updateUser(any(), any(), any())).thenReturn(null);
+        assertEquals(404, userController.updateUser(req).getStatusCode().value());
+    }
 
-                    ResponseEntity<ApiResponse<Map<String, String>>> result = userController
-                            .loginUser(fakeReqUser);
-                    assert (result != null);
-                    assert (result.getStatusCode().is5xxServerError());
-                    assert (result.getBody().getStatus().equals("error"));
-                }
+    // ================= UPDATE PASSWORD TESTS =================
 
-                // Berhasil login
-                {
-                    Mockito.when(authTokenService.findUserToken(Mockito.any(UUID.class),
-                            Mockito.anyString()))
-                            .thenReturn(null);
+    @Test
+    void updateUserPassword_Success() {
+        lenient().when(authContext.isAuthenticated()).thenReturn(true);
+        User authUser = new User(); authUser.setId(UUID.randomUUID());
+        authUser.setPassword(new BCryptPasswordEncoder().encode("oldPass")); 
+        lenient().when(authContext.getAuthUser()).thenReturn(authUser);
 
-                    Mockito.when(authTokenService.createAuthToken(Mockito.any(AuthToken.class)))
-                            .thenReturn(fakeAuthToken);
+        Map<String, String> payload = new HashMap<>();
+        payload.put("password", "oldPass");
+        payload.put("newPassword", "newPass");
 
-                    ResponseEntity<ApiResponse<Map<String, String>>> result = userController
-                            .loginUser(fakeReqUser);
-                    assert (result != null);
-                    assert (result.getStatusCode().is2xxSuccessful());
-                    assert (result.getBody().getStatus().equals("success"));
-                }
+        when(userService.updatePassword(any(), anyString())).thenReturn(authUser);
+        
+        // FIX: getStatusCode()
+        assertEquals(HttpStatus.OK, userController.updateUserPassword(payload).getStatusCode());
+    }
 
-            }
-        }
+    @Test
+    void updateUserPassword_Failures() {
+        // 1. Unauth
+        lenient().when(authContext.isAuthenticated()).thenReturn(false);
+        assertEquals(401, userController.updateUserPassword(new HashMap<>()).getStatusCode().value());
 
-        User authUser = new User("Auth User", "user@example.com", "password123");
-        authUser.setId(UUID.randomUUID());
+        // 2. Invalid Payload
+        lenient().when(authContext.isAuthenticated()).thenReturn(true);
+        lenient().when(authContext.getAuthUser()).thenReturn(new User());
+        
+        Map<String, String> payload = new HashMap<>();
+        assertEquals(400, userController.updateUserPassword(payload).getStatusCode().value()); 
+        
+        payload.put("password", "");
+        payload.put("newPassword", "new");
+        assertEquals(400, userController.updateUserPassword(payload).getStatusCode().value());
 
-        // Menguji method getUserInfo
-        {
-            // Tidak terautentikasi
-            {
-                userController.authContext.setAuthUser(null);
+        payload.clear();
+        payload.put("password", "valid");
+        payload.put("newPassword", null); // Missing new pass
+        assertEquals(400, userController.updateUserPassword(payload).getStatusCode().value());
 
-                ResponseEntity<ApiResponse<Map<String, User>>> result = userController.getUserInfo();
-                assert (result != null);
-                assert (result.getStatusCode().is4xxClientError());
-                assert (result.getBody().getStatus().equals("fail"));
-            }
+        payload.put("newPassword", ""); // Empty new pass
+        assertEquals(400, userController.updateUserPassword(payload).getStatusCode().value());
 
-            // Berhasil mendapatkan info user
-            {
-                userController.authContext.setAuthUser(authUser);
-
-                ResponseEntity<ApiResponse<Map<String, User>>> result = userController.getUserInfo();
-                assert (result != null);
-                assert (result.getStatusCode().is2xxSuccessful());
-                assert (result.getBody().getStatus().equals("success"));
-            }
-        }
-
-        // Menguji method updateUser
-        {
-            // Tidak terautentikasi
-            {
-                userController.authContext.setAuthUser(null);
-
-                ResponseEntity<ApiResponse<User>> result = userController.updateUser(authUser);
-                assert (result != null);
-                assert (result.getStatusCode().is4xxClientError());
-                assert (result.getBody().getStatus().equals("fail"));
-            }
-
-            // Data tidal valid
-            {
-                userController.authContext.setAuthUser(authUser);
-
-                List<User> invalidUsers = List.of(
-                        // Nama Null
-                        new User(null, "user@example.com", ""),
-                        // Nama Kosong
-                        new User("", "user@example.com", ""),
-                        // Email Null
-                        new User("Auth User", null, ""),
-                        // Email Kosong
-                        new User("Auth User", "", ""));
-
-                for (User reqUser : invalidUsers) {
-                    ResponseEntity<ApiResponse<User>> result = userController.updateUser(reqUser);
-                    assert (result != null);
-                    assert (result.getStatusCode().is4xxClientError());
-                    assert (result.getBody().getStatus().equals("fail"));
-                }
-            }
-
-            // Gagal update user karena user tidak ditemukan
-            {
-                Mockito.when(userService.updateUser(
-                        Mockito.any(UUID.class),
-                        Mockito.any(String.class),
-                        Mockito.any(String.class)))
-                        .thenReturn(null);
-
-                ResponseEntity<ApiResponse<User>> result = userController.updateUser(authUser);
-                assert (result != null);
-                assert (result.getStatusCode().is4xxClientError());
-                assert (result.getBody().getStatus().equals("fail"));
-            }
-
-            // Berhasil mengupdate user
-            {
-                Mockito.when(userService.updateUser(
-                        Mockito.any(UUID.class),
-                        Mockito.any(String.class),
-                        Mockito.any(String.class)))
-                        .thenReturn(authUser);
-
-                ResponseEntity<ApiResponse<User>> result = userController.updateUser(authUser);
-                assert (result != null);
-                assert (result.getStatusCode().is2xxSuccessful());
-                assert (result.getBody().getStatus().equals("success"));
-            }
-        }
-
-        // Menguji method updateUserPassword
-        {
-            Map<String, String> passwordPayload = Map.of(
-                    "password", "oldpassword123",
-                    "newPassword", "newpassword123");
-
-            // Tidak terautentikasi
-            {
-                userController.authContext.setAuthUser(null);
-
-                ResponseEntity<ApiResponse<Void>> result = userController
-                        .updateUserPassword(passwordPayload);
-                assert (result != null);
-                assert (result.getStatusCode().is4xxClientError());
-                assert (result.getBody().getStatus().equals("fail"));
-            }
-
-            userController.authContext.setAuthUser(authUser);
-
-            // Data tidal valid
-            {
-                List<Map<String, String>> invalidPayloads = List.of(
-                        // Old password Null
-                        Map.of(
-                                "no-password", "",
-                                "newPassword", "newpassword123"),
-                        // Old password Kosong
-                        Map.of(
-                                "password", "",
-                                "newPassword", "newpassword123"),
-                        // New password Null
-                        Map.of(
-                                "password", "oldpassword123",
-                                "no-newPassword", ""),
-                        // New password Kosong
-                        Map.of(
-                                "password", "oldpassword123",
-                                "newPassword", ""));
-
-                for (Map<String, String> payload : invalidPayloads) {
-                    ResponseEntity<ApiResponse<Void>> result = userController
-                            .updateUserPassword(payload);
-                    assert (result != null);
-                    assert (result.getStatusCode().is4xxClientError());
-                    assert (result.getBody().getStatus().equals("fail"));
-                }
-            }
-
-            // Password lama salah
-            {
-                authUser.setPassword(new BCryptPasswordEncoder().encode("correctOldPassword"));
-                ResponseEntity<ApiResponse<Void>> result = userController
-                        .updateUserPassword(passwordPayload);
-                assert (result != null);
-                assert (result.getStatusCode().is4xxClientError());
-                assert (result.getBody().getStatus().equals("fail"));
-            }
-
-            // User tidak ditemukan saat mengupdate password
-            {
-                authUser.setPassword(new BCryptPasswordEncoder().encode("oldpassword123"));
-
-                Mockito.when(userService.updatePassword(
-                        Mockito.any(UUID.class),
-                        Mockito.any(String.class)))
-                        .thenReturn(null);
-
-                ResponseEntity<ApiResponse<Void>> result = userController
-                        .updateUserPassword(passwordPayload);
-                assert (result != null);
-                assert (result.getStatusCode().is4xxClientError());
-                assert (result.getBody().getStatus().equals("fail"));
-            }
-
-            // Berhasil mengupdate password
-            {
-                authUser.setPassword(new BCryptPasswordEncoder().encode("oldpassword123"));
-
-                Mockito.when(userService.updatePassword(
-                        Mockito.any(UUID.class),
-                        Mockito.any(String.class)))
-                        .thenReturn(authUser);
-
-                ResponseEntity<ApiResponse<Void>> result = userController
-                        .updateUserPassword(passwordPayload);
-                assert (result != null);
-                assert (result.getStatusCode().is2xxSuccessful());
-                assert (result.getBody().getStatus().equals("success"));
-            }
-        }
+        // 3. Wrong Old Password
+        User authUser = new User();
+        authUser.setPassword(new BCryptPasswordEncoder().encode("correct"));
+        when(authContext.getAuthUser()).thenReturn(authUser);
+        
+        payload.put("password", "wrong");
+        payload.put("newPassword", "new");
+        assertEquals(400, userController.updateUserPassword(payload).getStatusCode().value());
+        
+        // 4. User Not Found
+        authUser.setPassword(new BCryptPasswordEncoder().encode("correct"));
+        payload.put("password", "correct");
+        when(userService.updatePassword(any(), any())).thenReturn(null);
+        assertEquals(404, userController.updateUserPassword(payload).getStatusCode().value());
     }
 }
+

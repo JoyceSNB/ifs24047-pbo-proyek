@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+  
+<div th:fragment="addFlowerModal">
+  <div class="modal fade" id="addFlowerModal" tabindex="-1" aria-labelledby="addFlowerModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title" id="addFlowerModalLabel">Tambah Bunga Baru</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        
+        <form th:action="@{/flowers/save}" method="post" enctype="multipart/form-data">
+          <div class="modal-body">
+            
+            <div class="mb-3">
+              <label for="flowerName" class="form-label">Nama Bunga</label>
+              <input type="text" class="form-control" name="flowerName" required>
+            </div>
+
+            <div class="mb-3">
+              <label for="species" class="form-label">Spesies</label>
+              <input type="text" class="form-control" name="species" required>
+            </div>
+
+            <div class="row">
+              <div class="col-md-6 mb-3">
+                <label for="price" class="form-label">Harga (Rp)</label>
+                <input type="number" class="form-control" name="price" min="0" required>
+              </div>
+              <div class="col-md-6 mb-3">
+                <label for="stock" class="form-label">Stok</label>
+                <input type="number" class="form-control" name="stock" min="0" required>
+              </div>
+            </div>
+
+            <div class="mb-3">
+              <label for="image" class="form-label">Foto Bunga</label>
+              <input type="file" class="form-control" name="image" accept="image/*">
+            </div>
+
+            <div class="mb-3">
+              <label for="description" class="form-label">Deskripsi</label>
+              <textarea class="form-control" name="description" rows="3"></textarea>
+            </div>
+
+          </div>
+          <div class="modal-footer">
+            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Batal</button>
+            <button type="submit" class="btn btn-primary">Simpan Data</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+</div>
+</html>

@@ -2,13 +2,17 @@ package org.delcom.app.controllers;
 
 import org.delcom.app.entities.User;
 import org.delcom.app.services.FlowerService;
+import org.delcom.app.services.UserService;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.security.authentication.AnonymousAuthenticationToken;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.GetMapping;
+
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Map;
 
 @Controller
 public class HomeController {
@@ -16,30 +20,48 @@ public class HomeController {
     @Autowired
     private FlowerService flowerService;
 
-    private boolean isAuthenticated(Authentication auth) {
-        return auth != null &&
-               auth.isAuthenticated() &&
-               !(auth instanceof AnonymousAuthenticationToken) &&
-               auth.getPrincipal() instanceof User;
-    }
+    @Autowired
+    private UserService userService;
 
     @GetMapping("/")
     public String index(Model model) {
         Authentication auth = SecurityContextHolder.getContext().getAuthentication();
 
-        // 1. Cek Login. Jika belum, lempar ke halaman login
-        if (!isAuthenticated(auth)) {
+        if (auth == null || !auth.isAuthenticated() || "anonymousUser".equals(auth.getPrincipal())) {
             return "redirect:/auth/login";
         }
 
-        // 2. Ambil User untuk navbar
-        User user = (User) auth.getPrincipal();
-        model.addAttribute("auth", user);
+        String email = auth.getName(); 
+        User currentUser = userService.getUserByEmail(email);
+        
+        if (currentUser == null) {
+            return "redirect:/auth/login";
+        }
 
-        // 3. Ambil Data Bunga untuk tabel
-        model.addAttribute("listFlowers", flowerService.getAllFlowers());
+        model.addAttribute("auth", currentUser);
 
-        // 4. Render file home.html
+        // --- [PERBAIKAN DI SINI] ---
+        // Ganti getAllFlowers() jadi getFlowersByUser(id)
+        model.addAttribute("listFlowers", flowerService.getFlowersByUser(currentUser.getId()));
+
+        // Ganti getTopSellingFlowers() jadi getTopSellingFlowersByUser(id)
+        Map<String, Integer> salesMap = flowerService.getTopSellingFlowersByUser(currentUser.getId());
+        // ---------------------------
+
+        List<Map.Entry<String, Integer>> sortedList = new ArrayList<>(salesMap.entrySet());
+        sortedList.sort((a, b) -> b.getValue().compareTo(a.getValue()));
+
+        List<String> salesNames = new ArrayList<>();
+        List<Integer> salesValues = new ArrayList<>();
+
+        for (Map.Entry<String, Integer> entry : sortedList) {
+            salesNames.add(entry.getKey());
+            salesValues.add(entry.getValue());
+        }
+
+        model.addAttribute("salesNames", salesNames);
+        model.addAttribute("salesValues", salesValues);
+
         return "pages/home";
     }
 }

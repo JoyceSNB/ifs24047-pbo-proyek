@@ -6,32 +6,72 @@
 >
   <head>
     <title>Daftar - Spring Boot Todolist</title>
+    <style>
+
+      .card-custom {
+          border: 2px solid #e91e63;
+          border-radius: 15px;
+          box-shadow: 0 4px 15px rgba(0, 0, 0, 0.05);
+      }
+      .text-pink {
+          color: #e91e63;
+          font-weight: bold;
+      }
+      .form-control:focus {
+          border-color: #e91e63;
+          box-shadow: 0 0 0 0.25rem rgba(233, 30, 99, 0.25);
+      }
+      .btn-pink {
+          background-color: #e91e63;
+          border-color: #e91e63;
+          color: white;
+          border-radius: 50px;
+          font-weight: bold;
+          padding: 10px 20px;
+          transition: all 0.3s;
+      }
+      .btn-pink:hover {
+          background-color: #c2185b;
+          border-color: #c2185b;
+          color: white;
+      }
+      .link-pink {
+          color: #e91e63;
+          text-decoration: none;
+          font-weight: 600;
+      }
+      .link-pink:hover {
+          text-decoration: underline;
+          color: #ad1457;
+      }
+    </style>
   </head>
   <body>
-    <div layout:fragment="content" class="mt-5">
+    <div layout:fragment="content" class="mt-5 d-flex justify-content-center align-items-center" style="min-height: 80vh;">
+      
       <form
         th:action="@{/auth/register/post}"
         method="post"
         th:object="${registerForm}"
+        style="width: 100%; max-width: 400px;"
       >
-        <div class="card mx-auto" style="max-width: 360px">
-          <div class="card-body">
+        <div class="card card-custom mx-auto">
+          <div class="card-body p-4">
             <div>
-              <div class="text-center">
+              <div class="text-center mb-4">
                 <img
                   th:src="@{/assets/images/logo.png}"
                   alt="Logo"
-                  width="64"
+                  width="80" 
+                  class="mb-3"
                 />
-                <hr />
-                <h5>Daftar</h5>
-                <span class="text-muted">
-                  Lengkapi form pendaftaran berikut untuk membuat akun baru
+                
+                <h4 class="text-pink">Selamat Datang!</h4>
+                <span class="text-muted small">
+                  Silakan lengkapi data untuk mendaftar katalog bunga.
                 </span>
-                <hr />
               </div>
 
-              <!-- Pesan Error Global -->
               <div
                 th:if="${#fields.hasGlobalErrors()}"
                 class="alert alert-danger"
@@ -42,13 +82,13 @@
                 ></th:block>
               </div>
 
-              <!-- Nama -->
               <div class="form-group mb-3">
-                <label for="inputName">Nama Lengkap</label>
+                <label for="inputName" class="fw-bold small mb-1">Nama Lengkap</label>
                 <input
                   type="text"
                   class="form-control"
                   id="inputName"
+                  placeholder="Masukkan nama lengkap"
                   th:field="*{name}"
                   th:classappend="${#fields.hasErrors('name')} ? 'is-invalid'"
                 />
@@ -63,13 +103,13 @@
                 </div>
               </div>
 
-              <!-- Alamat Email -->
               <div class="form-group mb-3">
-                <label for="inputEmail">Email</label>
+                <label for="inputEmail" class="fw-bold small mb-1">Alamat Email</label>
                 <input
                   type="email"
                   class="form-control"
                   id="inputEmail"
+                  placeholder="nama@email.com"
                   th:field="*{email}"
                   th:classappend="${#fields.hasErrors('email')} ? 'is-invalid'"
                 />
@@ -84,13 +124,13 @@
                 </div>
               </div>
 
-              <!-- Kata Sandi -->
-              <div class="form-group mb-3">
-                <label for="inputPassword">Kata Sandi</label>
+              <div class="form-group mb-4">
+                <label for="inputPassword" class="fw-bold small mb-1">Password</label>
                 <input
                   type="password"
                   class="form-control"
                   id="inputPassword"
+                  placeholder="******"
                   th:field="*{password}"
                   th:classappend="${#fields.hasErrors('password')} ? 'is-invalid'"
                 />
@@ -105,18 +145,19 @@
                 </div>
               </div>
 
-              <!-- Tombol Masuk -->
-              <div class="form-group mt-3 text-end">
-                <button type="submit" class="btn btn-primary btn-block">
-                  Masuk
+              <div class="d-grid gap-2">
+                <button type="submit" class="btn btn-pink btn-block">
+                  Daftar
                 </button>
               </div>
 
-              <hr />
-              <p class="text-center">
-                Sudah memiliki akun?
-                <a th:href="@{/auth/login}">Masuk</a>
-              </p>
+              <div class="text-center mt-4">
+                <p class="small text-muted">
+                  Sudah punya akun?
+                  <a th:href="@{/auth/login}" class="link-pink">Masuk Sekarang</a>
+                </p>
+              </div>
+              
             </div>
           </div>
         </div>

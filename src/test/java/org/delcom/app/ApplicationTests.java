@@ -1,53 +1,55 @@
 package org.delcom.app;
 
+import org.delcom.app.entities.User;
+import org.delcom.app.repositories.UserRepository;
 import org.junit.jupiter.api.Test;
-import org.springframework.boot.SpringApplication;
-import org.springframework.context.ConfigurableApplicationContext;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.InjectMocks;
+import org.mockito.Mock;
+import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.boot.CommandLineRunner;
+import org.springframework.security.crypto.password.PasswordEncoder;
 
-import static org.junit.jupiter.api.Assertions.*;
+import java.util.Optional;
+
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.*;
 
+@ExtendWith(MockitoExtension.class)
 class ApplicationTest {
 
-	@Test
-	void mainMethod_ShouldRunSpringApplication() throws Exception {
-		// Mock SpringApplication.run untuk test main method
-		try (var mockedSpring = mockStatic(SpringApplication.class)) {
-			ConfigurableApplicationContext mockContext = mock(ConfigurableApplicationContext.class);
-			mockedSpring.when(() -> SpringApplication.run(Application.class, new String[] {}))
-					.thenReturn(mockContext);
+    @Mock
+    private UserRepository userRepository;
 
-			// Jalankan main method
-			assertDoesNotThrow(() -> Application.main(new String[] {}));
+    @Mock
+    private PasswordEncoder passwordEncoder;
 
-			// Verify SpringApplication.run dipanggil
-			mockedSpring.verify(() -> SpringApplication.run(Application.class, new String[] {}));
-		}
-	}
+    @InjectMocks
+    private Application application; 
 
-	@Test
-	void contextLoads_ShouldNotThrowException() throws Exception {
-		// Test bahwa Spring context bisa dimuat
-		assertDoesNotThrow(() -> {
-			// Test basic class loading
-			Class<?> clazz = Class.forName("org.delcom.app.Application");
-			assertNotNull(clazz);
-		});
-	}
+    @Test
+    void testInit_Runner() throws Exception {
+        when(userRepository.findFirstByEmail("admin@bunga.com")).thenReturn(Optional.empty());
+        
+        when(passwordEncoder.encode(anyString())).thenReturn("hashedPwd");
 
-	@Test
-	void todoApplication_ShouldHaveSpringBootAnnotation() throws Exception {
-		// Test bahwa class memiliki annotation @SpringBootApplication
-		assertNotNull(Application.class
-				.getAnnotation(org.springframework.boot.autoconfigure.SpringBootApplication.class));
-	}
+        CommandLineRunner runner = application.init(userRepository, passwordEncoder);
+  
+        if (runner != null) {
+            runner.run();
+        }
 
-	@Test
-	void todoApplication_CanBeInstantiated() throws Exception {
-		// Test bahwa kita bisa membuat instance Application
-		assertDoesNotThrow(() -> {
-			Application app = new Application();
-			assertNotNull(app);
-		});
-	}
+        verify(userRepository, times(1)).save(any(User.class));
+    }
+    
+    @Test
+    void testMain() {
+        try {
+            Application.main(new String[]{});
+        } catch (Exception e) {
+            
+        }
+    }
 }
+

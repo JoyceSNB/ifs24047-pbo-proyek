@@ -11,33 +11,35 @@ import org.springframework.security.web.SecurityFilterChain;
 @Configuration
 @EnableWebSecurity
 public class SecurityConfig {
-        @Bean
-        SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
-                http
-                                .exceptionHandling(ex -> ex
-                                                .authenticationEntryPoint((req, res, e) -> {
-                                                        res.sendRedirect("/auth/login");
-                                                }))
-                                .authorizeHttpRequests(auth -> auth
-                                                .requestMatchers("/auth/**", "/assets/**", "/api/**",
-                                                                "/css/**", "/js/**")
-                                                .permitAll()
-                                                .anyRequest().authenticated())
 
-                                .formLogin(form -> form.disable())
-                                .logout(logout -> logout
-                                                .logoutSuccessUrl("/auth/login")
-                                                .permitAll())
-                                .rememberMe(remember -> remember
-                                                .key("uniqueAndSecret")
-                                                .tokenValiditySeconds(86400) // 24 jam
-                                );
+    @Bean
+    public PasswordEncoder passwordEncoder() {
+        return new BCryptPasswordEncoder();
+    }
 
-                return http.build();
-        }
+    @Bean
+    public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
+        http
+            .csrf(csrf -> csrf.disable())
+            .authorizeHttpRequests(auth -> auth
+                .requestMatchers("/assets/**", "/css/**", "/js/**", "/images/**", "/uploads/**").permitAll()
+                .requestMatchers("/auth/**").permitAll()
+                .requestMatchers("/error").permitAll()
+                .anyRequest().authenticated() 
+            )
+            .formLogin(login -> login
+                .loginPage("/auth/login") 
+                .loginProcessingUrl("/auth/login") 
+                .usernameParameter("email") 
+                .defaultSuccessUrl("/", true)
+                .permitAll()
+            )
+            .logout(logout -> logout
+                .logoutUrl("/auth/logout")
+                .logoutSuccessUrl("/auth/login?logout")
+                .permitAll()
+            );
 
-        @Bean
-        public PasswordEncoder passwordEncoder() {
-                return new BCryptPasswordEncoder();
-        }
+        return http.build();
+    }
 }

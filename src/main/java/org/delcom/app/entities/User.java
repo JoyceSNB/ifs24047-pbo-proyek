@@ -2,7 +2,6 @@ package org.delcom.app.entities;
 
 import java.time.LocalDateTime;
 import java.util.UUID;
-
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonPropertyOrder;
 
@@ -14,7 +13,6 @@ import jakarta.persistence.*;
 @JsonInclude(JsonInclude.Include.NON_NULL)
 public class User {
 
-    // ======= Attributes =======
     @Id
     @GeneratedValue(generator = "UUID")
     @Column(name = "id", updatable = false, nullable = false, columnDefinition = "uuid")
@@ -35,8 +33,6 @@ public class User {
     @Column(name = "updated_at", nullable = false)
     private LocalDateTime updatedAt;
 
-    // ======= Constructors =======
-
     public User() {
     }
 
@@ -50,7 +46,6 @@ public class User {
         this.password = password;
     }
 
-    // ======= Getters and Setters =======
     public UUID getId() {
         return id;
     }
@@ -91,7 +86,6 @@ public class User {
         return updatedAt;
     }
 
-    // ======= @PrePersist & @PreUpdate =======
     @PrePersist
     protected void onCreate() {
         createdAt = LocalDateTime.now();

@@ -6,101 +6,592 @@
   lang="id"
 >
   <head>
-    <title>Aplikasi Katalog Bunga</title>
+    <title>Dashboard Katalog Bunga</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    
+    <style>
+        /* --- 1. PALET WARNA (PINK THEME) --- */
+        :root {
+            --bs-primary: #eb0c7b; 
+            --bs-primary-rgb: 214, 51, 132;
+            --pink-dark: #880e4f;
+            --pink-soft: #fff5f8;
+            --pink-border: #f8bbd0;
+            --pink-hover: #fce4ec;
+        }
+
+        body {
+            background-color: var(--pink-soft);
+        }
+
+        /* --- 2. CARD STYLE --- */
+        .flower-card {
+            transition: all 0.3s ease;
+            border: 1px solid rgb(254, 25, 135);
+            border-radius: 15px;
+            background: rgba(247, 213, 228, 0.996);
+            overflow: hidden;
+            box-shadow: 0 4px 10px rgba(214, 51, 132, 0.05);
+        }
+        
+        .flower-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 25px rgba(214, 51, 132, 0.2);
+            border-color: var(--pink-border);
+        }
+
+        .card-img-wrapper {
+            height: 220px;
+            overflow: hidden;
+            background-color: #ffa9c3;
+            position: relative;
+        }
+
+        .card-img-top {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            transition: transform 0.5s ease;
+        }
+
+        .flower-card:hover .card-img-top {
+            transform: scale(1.1); 
+        }
+
+        /* --- BADGE STATUS (MERAH & HIJAU LEBIH TEGAS) --- */
+        .stock-badge {
+            position: absolute;
+            top: 10px;
+            left: 10px;
+            font-size: 0.75rem;
+            z-index: 10;
+            border: 1px solid white; 
+            color: white;
+            font-weight: bold;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+        }
+
+        /* Hijau Menyala untuk Tersedia */
+        .bg-ready-custom {
+            background-color: #00c853 !important; 
+        }
+
+        /* Merah Menyala untuk Habis */
+        .bg-empty-custom {
+            background-color: #ff0000 !important; 
+        }
+
+        /* --- 3. TEXT STYLING --- */
+        .flower-name {
+            color: var(--bs-primary);
+            font-weight: 800;
+            font-size: 1.2rem;
+            text-align: center;
+            margin-bottom: 5px;
+        }
+
+        .flower-price {
+            color: #000;
+            font-weight: 700;
+            font-size: 1.1rem;
+            text-align: center;
+            margin-bottom: 15px;
+        }
+
+        .flower-info {
+            text-align: left;
+            color: #000;
+            font-size: 0.9rem;
+            padding: 0 5px;
+        }
+
+        /* --- 4. BUTTONS --- */
+        .btn-primary {
+            background-color: var(--bs-primary);
+            border-color: var(--bs-primary);
+        }
+        .btn-primary:hover {
+            background-color: #ff006f;
+            border-color: #c66e9d;
+        }
+        
+        .card-custom-header {
+            background: linear-gradient(135deg, #e26c93, #f690bc);
+            color: rgb(252, 252, 252);
+            border: none;
+            border-radius: 15px;
+        }
+
+        .card-actions {
+            background: rgba(247, 213, 228, 0.996);
+            border-top: 1px solid var(--pink-soft);
+            padding: 10px;
+        }
+        
+        .btn-action-pink {
+            color: var(--bs-primary);
+            font-weight: bold;
+            background: transparent;
+            border: none;
+        }
+        .btn-action-pink:hover {
+            color: var(--pink-dark);
+            background-color: var(--pink-soft);
+        }
+    </style>
   </head>
   <body>
-    <div layout:fragment="content" class="mt-4">
+    <div layout:fragment="content" class="mt-4 pb-5">
       
-      <div class="card mb-4 shadow-sm">
+      <div class="card mb-4 shadow-sm card-custom-header">
         <div class="card-body d-flex align-items-center justify-content-between">
-          <h4 class="m-0">Selamat Datang, <span th:text="${auth.name}" class="fw-bold text-primary">User</span> 👋</h4>
-          <a th:href="@{/auth/logout}" class="btn btn-outline-danger btn-sm">Keluar</a>
+          <div>
+            <h4 class="m-0 fw-bold">Halo, <span th:text="${auth.name}">User</span>!</h4>
+            <small class="opacity-75">Selamat datang di Katalog Bunga.</small>
+          </div>
+          <a th:href="@{/auth/logout}" class="btn btn-light btn-sm fw-bold text-primary shadow-sm rounded-pill px-3">
+            <i class="bi bi-box-arrow-right"></i> Keluar
+          </a>
         </div>
       </div>
 
-      <div class="card shadow">
-        <div class="card-body">
-          
-          <div class="d-flex mb-4 align-items-center justify-content-between">
-            <h3 class="card-title text-success"><i class="bi bi-flower1"></i> Katalog Bunga</h3>
-            <button class="btn btn-success" data-bs-toggle="modal" data-bs-target="#addFlowerModal">
-              <i class="bi bi-plus-lg"></i> Tambah Bunga
+      <div class="d-flex mb-4 align-items-center justify-content-between px-2">
+        <h4 class="text-primary m-0 fw-bold"><i class="bi bi-grid-fill"></i> Koleksi Bunga</h4>
+        
+        <div>
+            <button class="btn btn-outline-primary rounded-pill px-3 shadow-sm me-2 bg-white" 
+                    data-bs-toggle="modal" data-bs-target="#statsModal">
+              <i class="bi bi-pie-chart-fill me-1"></i> Statistik
             </button>
-          </div>
 
-          <div class="table-responsive">
-            <table class="table table-hover align-middle table-bordered">
-              <thead class="table-light text-center">
-                <tr>
-                  <th style="width: 100px;">Foto</th>
-                  <th>Nama Bunga</th>
-                  <th>Varietas</th>
-                  <th>Harga</th>
-                  <th>Stok</th>
-                  <th style="width: 150px;">Aksi</th>
-                </tr>
-              </thead>
-              <tbody>
-                <tr th:each="item : ${listFlowers}">
-                  <td class="text-center">
-                    <img th:if="${item.imagePath != null}" 
-                         th:src="@{'/uploads/' + ${item.imagePath}}" 
-                         class="rounded shadow-sm" 
-                         style="width: 70px; height: 70px; object-fit: cover;">
-                    <span th:unless="${item.imagePath != null}" class="badge bg-secondary">No Img</span>
-                  </td>
-                  <td class="fw-bold" th:text="${item.name}">Mawar</td>
-                  <td th:text="${item.variety}">Merah</td>
-                  <td class="text-end" th:text="${'Rp ' + #numbers.formatDecimal(item.price, 0, 'POINT', 0, 'COMMA')}">Rp 50.000</td>
-                  <td class="text-center">
-                    <span th:text="${item.stock}" 
-                          th:class="${item.stock > 5 ? 'badge bg-success' : 'badge bg-warning text-dark'}">
-                      10
+            <button class="btn btn-primary rounded-pill px-4 shadow-sm" 
+                    data-bs-toggle="modal" data-bs-target="#addFlowerModal">
+              <i class="bi bi-plus-lg me-1"></i> Tambah Baru
+            </button>
+        </div>
+      </div>
+
+      <div class="row row-cols-1 row-cols-md-2 row-cols-lg-4 g-4">
+        
+        <div class="col" th:each="item : ${listFlowers}">
+            <div class="card h-100 flower-card">
+                
+                <div class="card-img-wrapper">
+                    
+                    <span class="badge bg-ready-custom stock-badge shadow-sm rounded-pill px-2" th:if="${item.stock > 0}">
+                        <i class="bi bi-check-circle me-1"></i>Tersedia
                     </span>
-                  </td>
-                  <td class="text-center">
-                    <button class="btn btn-sm btn-warning me-1"
-                      th:attr="onclick=|prepareEditFlower('${item.id}', '${item.name}', '${item.variety}', '${item.price}', '${item.stock}')|">
-                      <i class="bi bi-pencil-square"></i>
+                    
+                    <span class="badge bg-empty-custom stock-badge shadow-sm rounded-pill px-2" th:if="${item.stock == 0}">
+                        <i class="bi bi-x-circle me-1"></i>Habis
+                    </span>
+                    
+                    <img th:if="${item.imagePath != null}" th:src="@{'/uploads/' + ${item.imagePath}}" class="card-img-top" alt="Bunga">
+                    
+                    <div th:unless="${item.imagePath != null}" class="d-flex align-items-center justify-content-center h-100 text-muted bg-white">
+                        <div class="text-center opacity-50">
+                            <i class="bi bi-flower1 fs-1 text-primary"></i><br><small>No Photo</small>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="card-body pt-3 pb-2">
+                    
+                    <div class="flower-name text-truncate" th:text="${item.flowerName}">
+                        Mawar Merah
+                    </div>
+                    
+                    <div class="flower-price" th:text="${'Rp ' + #numbers.formatDecimal(item.price, 0, 'POINT', 0, 'COMMA')}">
+                        Rp 50.000
+                    </div>
+
+                    <hr class="my-2" style="border-color: #ffffff;">
+
+                    <div class="flower-info">
+                        <div class="mb-1">
+                            <i class="bi bi-flower1 me-2 text-muted"></i>
+                            <span class="fw-bold">Spesies:</span> 
+                            <span th:text="${item.species}">Rosaceae</span>
+                        </div>
+                        <div>
+                            <i class="bi bi-box-seam me-2 text-muted"></i>
+                            <span class="fw-bold">Stok:</span> 
+                            <span th:text="${item.stock}">12</span>
+                        </div>
+                        <div class="text-end mt-2" style="font-size: 0.75rem;">
+                            <span class="text-muted fw-bold">Dibuat:</span>
+                            <span th:text="${#temporals.format(item.createdAt, 'dd-MM-yyyy HH:mm')}">06-12-2025 14:30</span>
+                        </div>
+                    </div>
+
+                </div>
+
+                <div class="card-actions d-flex justify-content-between gap-1">
+                    <button class="btn btn-sm btn-action-pink flex-fill" 
+                        data-bs-toggle="modal" data-bs-target="#detailFlowerModal"
+                        th:attr="data-id=${item.id}, data-name=${item.flowerName}, data-species=${item.species}, data-price=${item.price}, data-stock=${item.stock}, data-desc=${item.description}, data-img=${item.imagePath}"
+                        onclick="fillDetail(this)">
+                        <i class="bi bi-eye"></i> Detail
                     </button>
-                    <button class="btn btn-sm btn-danger"
-                      th:attr="onclick=|prepareDeleteFlower('${item.id}', '${item.name}')|">
-                      <i class="bi bi-trash"></i>
+                    
+                    <button class="btn btn-sm btn-action-pink flex-fill" 
+                        data-bs-toggle="modal" data-bs-target="#editFlowerModal"
+                        th:attr="data-id=${item.id}, data-name=${item.flowerName}, data-species=${item.species}, data-price=${item.price}, data-stock=${item.stock}, data-desc=${item.description}"
+                        onclick="fillEdit(this)">
+                        <i class="bi bi-pencil-square"></i> Edit
                     </button>
-                  </td>
-                </tr>
-                <tr th:if="${#lists.isEmpty(listFlowers)}">
-                  <td colspan="6" class="text-center text-muted py-5">
-                    <i class="bi bi-inbox fs-1 d-block mb-2"></i>
-                    <em>Belum ada koleksi bunga. Silakan tambah data baru.</em>
-                  </td>
-                </tr>
-              </tbody>
-            </table>
+
+                    <button class="btn btn-sm btn-action-pink flex-fill" 
+                        data-bs-toggle="modal" data-bs-target="#deleteFlowerModal"
+                        th:attr="data-id=${item.id}, data-name=${item.flowerName}"
+                        onclick="fillDelete(this)">
+                        <i class="bi bi-trash"></i> Hapus
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-12 text-center py-5" th:if="${#lists.isEmpty(listFlowers)}">
+            <div class="p-5 bg-white rounded-4 shadow-sm border border-dashed" style="border-color: var(--pink-border) !important;">
+                <div class="text-primary mb-3"><i class="bi bi-flower2 fs-1"></i></div>
+                <h5 class="text-muted">Katalog masih kosong.</h5>
+                <button class="btn btn-primary rounded-pill mt-3 px-4" data-bs-toggle="modal" data-bs-target="#addFlowerModal">
+                    Tambah Koleksi Pertama
+                </button>
+            </div>
+        </div>
+
+      </div>
+
+      <div class="modal fade" id="statsModal" tabindex="-1">
+        <div class="modal-dialog modal-xl modal-dialog-centered">
+          <div class="modal-content border-0 rounded-4">
+            <div class="modal-header border-0">
+              <h5 class="modal-title fw-bold text-dark"><i class="bi bi-graph-up text-primary"></i> Statistik Toko</h5>
+              <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body bg-light">
+                <div class="row g-4">
+                    <div class="col-lg-6">
+                      <div class="card border-0 shadow-sm h-100 p-3">
+                        <h6 class="text-center fw-bold mb-3 text-muted">Stok Bunga</h6>
+                        <div style="height: 250px;"><canvas id="flowerStockChart"></canvas></div>
+                      </div>
+                    </div>
+                    <div class="col-lg-6">
+                      <div class="card border-0 shadow-sm h-100 p-3">
+                        <h6 class="text-center fw-bold mb-3 text-muted">Penjualan Terlaris</h6>
+                        <div style="height: 250px;"><canvas id="flowerSalesChart"></canvas></div>
+                      </div>
+                    </div>
+                  </div>
+            </div>
           </div>
         </div>
       </div>
 
-      <div th:replace="~{models/flowers/add :: addFlowerModal}"></div>
-      <div th:replace="~{models/flowers/edit :: editFlowerModal}"></div>
-      <div th:replace="~{models/flowers/delete :: deleteFlowerModal}"></div>
+      <div class="modal fade" id="addFlowerModal" tabindex="-1">
+        <div class="modal-dialog modal-dialog-centered">
+          <div class="modal-content border-0 rounded-4">
+            <div class="modal-header bg-primary text-white">
+              <h5 class="modal-title">Tambah Bunga Baru</h5>
+              <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <form th:action="@{/flowers/save}" method="post" enctype="multipart/form-data">
+              <div class="modal-body p-4">
+                <div class="mb-3"><label class="fw-bold small">Nama Bunga</label><input type="text" class="form-control" name="flowerName" required></div>
+                <div class="mb-3"><label class="fw-bold small">Spesies/Kategori</label><input type="text" class="form-control" name="species" required></div>
+                <div class="row">
+                  <div class="col-6 mb-3"><label class="fw-bold small">Harga (Rp)</label><input type="number" class="form-control" name="price" required></div>
+                  <div class="col-6 mb-3"><label class="fw-bold small">Stok Awal</label><input type="number" class="form-control" name="stock" required></div>
+                </div>
+                <div class="mb-3"><label class="fw-bold small">Foto</label><input type="file" class="form-control" name="image" accept="image/*"></div>
+                <div class="mb-3"><label class="fw-bold small">Deskripsi</label><textarea class="form-control" name="description"></textarea></div>
+              </div>
+              <div class="modal-footer border-0 pt-0">
+                  <button type="button" class="btn btn-light rounded-pill" data-bs-dismiss="modal">Batal</button>
+                  <button type="submit" class="btn btn-primary rounded-pill px-4">Simpan</button>
+              </div>
+            </form>
+          </div>
+        </div>
+      </div>
+
+      <div class="modal fade" id="editFlowerModal" tabindex="-1">
+        <div class="modal-dialog modal-dialog-centered">
+          <div class="modal-content border-0 rounded-4">
+            <div class="modal-header bg-primary text-white">
+              <h5 class="modal-title fw-bold">Edit Bunga</h5>
+              <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <form th:action="@{/flowers/save}" method="post" enctype="multipart/form-data">
+              <div class="modal-body p-4">
+                <input type="hidden" id="editId" name="id">
+                <div class="mb-3"><label class="fw-bold small">Nama Bunga</label><input type="text" class="form-control" id="editName" name="flowerName" required></div>
+                <div class="mb-3"><label class="fw-bold small">Spesies</label><input type="text" class="form-control" id="editSpecies" name="species" required></div>
+                <div class="row">
+                  <div class="col-6"><label class="fw-bold small">Harga</label><input type="number" class="form-control" id="editPrice" name="price" required></div>
+                  <div class="col-6"><label class="fw-bold small">Stok</label><input type="number" class="form-control" id="editStock" name="stock" required></div>
+                </div>
+                <div class="mb-3 mt-3"><label class="fw-bold small">Ganti Foto</label><input type="file" class="form-control" name="image" accept="image/*"></div>
+                <div class="mb-3"><label class="fw-bold small">Deskripsi</label><textarea class="form-control" id="editDesc" name="description"></textarea></div>
+              </div>
+              <div class="modal-footer border-0 pt-0">
+                  <button type="button" class="btn btn-light rounded-pill" data-bs-dismiss="modal">Batal</button>
+                  <button type="submit" class="btn btn-primary rounded-pill px-4">Update</button>
+              </div>
+            </form>
+          </div>
+        </div>
+      </div>
+
+      <div class="modal fade" id="detailFlowerModal" tabindex="-1">
+        <div class="modal-dialog modal-dialog-centered">
+          <div class="modal-content border-0 rounded-4 overflow-hidden">
+            <div class="modal-body p-0">
+                <div class="position-relative">
+                    <img id="detailImg" src="" style="width:100%; height:250px; object-fit:cover; display:none;">
+                    <div th:unless="${true}" class="bg-secondary" style="height:200px"></div>
+                    <button type="button" class="btn-close position-absolute top-0 end-0 m-3 bg-white p-2 shadow" data-bs-dismiss="modal"></button>
+                    
+                    <div class="position-absolute bottom-0 start-0 w-100 p-3" style="background: linear-gradient(to top, rgba(0,0,0,0.8), transparent);">
+                        <h3 id="detailName" class="fw-bold mb-0 text-white"></h3>
+                        <span class="badge bg-primary border border-white" id="detailSpecies"></span>
+                    </div>
+                </div>
+                
+                <div class="p-4">
+                    <div class="row mb-3">
+                        <div class="col-6">
+                            <small class="text-muted">Harga Satuan</small>
+                            <h4 class="text-success fw-bold" id="detailPrice"></h4>
+                        </div>
+                        <div class="col-6 text-end">
+                            <small class="text-muted">Stok Gudang</small>
+                            <h4 class="text-dark fw-bold" id="detailStock"></h4>
+                        </div>
+                    </div>
+                    <p class="text-dark bg-light p-3 rounded small border" id="detailDesc"></p>
+
+                    <h6 class="fw-bold mt-4 mb-3 text-primary"><i class="bi bi-clock-history me-1"></i>Riwayat Stok</h6>
+                    <div class="table-responsive rounded border">
+                        <table class="table table-sm mb-0 table-striped" style="font-size: 0.8rem;">
+                            <thead class="bg-light">
+                                <tr>
+                                    <th class="ps-3 py-2">Tanggal Diubah</th>
+                                    <th class="py-2">Aktivitas</th>
+                                    <th class="text-end pe-3 py-2">Sisa</th>
+                                </tr>
+                            </thead>
+                            <tbody id="historyTableBody">
+                                <tr><td colspan="3" class="text-center p-3">Memuat...</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="modal fade" id="deleteFlowerModal" tabindex="-1">
+        <div class="modal-dialog modal-sm modal-dialog-centered">
+          <div class="modal-content border-0 rounded-4">
+            <div class="modal-body text-center p-4">
+                <i class="bi bi-trash3 text-danger display-3 mb-3"></i>
+                <h5 class="fw-bold">Hapus Bunga?</h5>
+                <p class="text-muted small">Data <b id="deleteName"></b> akan dihapus permanen.</p>
+                
+                <form th:action="@{/flowers/delete}" method="post">
+                    <input type="hidden" id="deleteId" name="id">
+                    <div class="d-flex gap-2 justify-content-center mt-4">
+                        <button type="button" class="btn btn-light rounded-pill flex-fill" data-bs-dismiss="modal">Batal</button>
+                        <button type="submit" class="btn btn-danger rounded-pill flex-fill">Hapus</button>
+                    </div>
+                </form>
+            </div>
+          </div>
+        </div>
+      </div>
+
     </div>
 
-    <script layout:fragment="others-js">
-      function prepareEditFlower(id, name, variety, price, stock) {
-        document.getElementById("editFlowerId").value = id;
-        document.getElementById("editFlowerName").value = name;
-        document.getElementById("editFlowerVariety").value = variety;
-        document.getElementById("editFlowerPrice").value = price;
-        document.getElementById("editFlowerStock").value = stock;
-        new bootstrap.Modal(document.getElementById("editFlowerModal")).show();
+    <script layout:fragment="others-js" th:inline="javascript">
+      /*<![CDATA[*/
+
+      function safeText(val) { return (val && val !== 'null') ? val : '-'; }
+      function formatDateTime(dateString) {
+          if (!dateString || dateString === 'null') return '-';
+          try {
+              const d = new Date(dateString);
+              return d.toLocaleString('id-ID', { dateStyle: 'short', timeStyle: 'short' });
+          } catch(e) { return '-'; }
       }
 
-      function prepareDeleteFlower(id, name) {
-        document.getElementById("deleteFlowerId").value = id;
-        document.getElementById("deleteFlowerName").innerText = name;
-        new bootstrap.Modal(document.getElementById("deleteFlowerModal")).show();
+      function fillDetail(btn) {
+          try {
+              const d = btn.dataset;
+              const id = d.id; 
+
+              document.getElementById('detailName').innerText = safeText(d.name);
+              document.getElementById('detailSpecies').innerText = safeText(d.species);
+              document.getElementById('detailDesc').innerText = safeText(d.desc);
+              document.getElementById('detailStock').innerText = d.stock;
+
+              if (d.price) {
+                  let priceNum = parseFloat(d.price);
+                  let fmt = new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', minimumFractionDigits: 0 }).format(priceNum);
+                  document.getElementById('detailPrice').innerText = fmt;
+              }
+
+              const imgEl = document.getElementById('detailImg');
+              if (d.img && d.img !== 'null') {
+                  imgEl.src = '/uploads/' + d.img;
+                  imgEl.style.display = 'block';
+              } else {
+                  imgEl.style.display = 'none';
+              }
+
+              const tbody = document.getElementById('historyTableBody');
+              tbody.innerHTML = '<tr><td colspan="3" class="text-center p-3 text-muted">Loading...</td></tr>';
+
+              fetch('/flowers/api/history/' + id)
+                .then(response => response.json())
+                .then(data => {
+                    tbody.innerHTML = '';
+                    if (data.length === 0) {
+                        tbody.innerHTML = '<tr><td colspan="3" class="text-center p-3 text-muted">Belum ada riwayat.</td></tr>';
+                        return;
+                    }
+                    data.forEach(h => {
+                        const timeStr = formatDateTime(h.recordedAt);
+                        let typeColor = h.type === 'PENJUALAN' ? 'text-danger' : 'text-success';
+                        
+                        const row = `<tr>
+                            <td class="ps-3 small">${timeStr}</td>
+                            <td><span class="${typeColor} fw-bold small">${h.type} (${h.quantity})</span></td>
+                            <td class="text-end pe-3 fw-bold">${h.finalStock}</td>
+                        </tr>`;
+                        tbody.innerHTML += row;
+                    });
+                })
+                .catch(err => {
+                    console.error(err);
+                    tbody.innerHTML = '<tr><td colspan="3" class="text-center text-danger">Gagal memuat.</td></tr>';
+                });
+
+          } catch(e) { console.error("Error Detail:", e); }
       }
+
+      function fillEdit(btn) {
+          try {
+              const d = btn.dataset;
+              document.getElementById('editId').value = d.id;
+              document.getElementById('editName').value = d.name;
+              document.getElementById('editSpecies').value = d.species;
+              document.getElementById('editPrice').value = parseFloat(d.price) || 0;
+              document.getElementById('editStock').value = parseInt(d.stock) || 0;
+              document.getElementById('editDesc').value = d.desc === 'null' ? '' : d.desc;
+          } catch(e) { console.error("Error Edit:", e); }
+      }
+
+      function fillDelete(btn) {
+          try {
+              const d = btn.dataset;
+              document.getElementById('deleteId').value = d.id;
+              document.getElementById('deleteName').innerText = d.name;
+          } catch(e) { console.error("Error Delete:", e); }
+      }
+
+      // --- CHART CONFIGURATION ---
+      var stockLabels = [];
+      var stockData = [];
+      /*[# th:each="f : ${listFlowers}"]*/
+          stockLabels.push(/*[[${f.flowerName}]]*/ "Bunga");
+          stockData.push(/*[[${f.stock}]]*/ 0);
+      /*[/]*/
+
+      var salesLabels = [];
+      var salesData = [];
+      /*[# th:each="name : ${salesNames}"]*/
+          salesLabels.push(/*[[${name}]]*/ "Bunga");
+      /*[/]*/
+      /*[# th:each="val : ${salesValues}"]*/
+          salesData.push(/*[[${val}]]*/ 0);
+      /*[/]*/
+
+      let stockChartInstance = null;
+      let salesChartInstance = null;
+
+      // PALET WARNA PINK THEME
+      const pinkPalette = [
+          '#d63384', '#e91e63', '#ec407a', '#f06292', '#f48fb1', '#f8bbd0', '#fce4ec' 
+      ];
+
+      const statsModalEl = document.getElementById('statsModal');
+      if (statsModalEl) {
+          statsModalEl.addEventListener('shown.bs.modal', function () {
+              if (typeof Chart === 'undefined') return;
+
+              // 1. Chart Stok (Donat)
+              const ctxStock = document.getElementById('flowerStockChart');
+              if (ctxStock && stockLabels.length > 0) {
+                  if (stockChartInstance) stockChartInstance.destroy(); 
+                  stockChartInstance = new Chart(ctxStock.getContext('2d'), {
+                      type: 'doughnut',
+                      data: {
+                          labels: stockLabels,
+                          datasets: [{
+                              data: stockData,
+                              backgroundColor: pinkPalette,
+                              borderWidth: 0,
+                              hoverOffset: 10
+                          }]
+                      },
+                      options: {
+                          responsive: true,
+                          maintainAspectRatio: false,
+                          plugins: {
+                              legend: { position: 'right', labels: { boxWidth: 10, usePointStyle: true } },
+                          },
+                          cutout: '65%'
+                      }
+                  });
+              }
+
+              // 2. Chart Penjualan (Bar)
+              const ctxSales = document.getElementById('flowerSalesChart');
+              if (ctxSales && salesLabels.length > 0) {
+                  if (salesChartInstance) salesChartInstance.destroy();
+                  salesChartInstance = new Chart(ctxSales.getContext('2d'), {
+                      type: 'bar',
+                      data: {
+                          labels: salesLabels,
+                          datasets: [{
+                              label: 'Terjual',
+                              data: salesData,
+                              backgroundColor: '#d63384',
+                              borderRadius: 5,
+                              barThickness: 30
+                          }]
+                      },
+                      options: {
+                          responsive: true,
+                          maintainAspectRatio: false,
+                          plugins: {
+                              legend: { display: false }
+                          },
+                          scales: {
+                              y: { beginAtZero: true, grid: { display: false } },
+                              x: { grid: { display: false } }
+                          }
+                      }
+                  });
+              }
+          });
+      }
+
+      /*]]>*/
     </script>
   </body>
 </html>

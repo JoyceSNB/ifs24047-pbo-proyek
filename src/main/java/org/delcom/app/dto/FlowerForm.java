@@ -1,31 +1,39 @@
 package org.delcom.app.dto;
 
 import org.springframework.web.multipart.MultipartFile;
-import java.time.LocalDate;
+import java.util.UUID; 
 
 public class FlowerForm {
-    private Long id;
-    private String name;
-    private String variety;
-    private Integer stock;
+    
+    private UUID id;
+    
+    private String flowerName;
+    private String species;
     private Double price;
-    private MultipartFile image; // Menangkap file upload
+    private Integer stock;
+    private String description;
+    
+    private MultipartFile image;
 
-    // Getters and Setters
-    public Long getId() { return id; }
-    public void setId(Long id) { this.id = id; }
+    public FlowerForm() {}
+    
+    public UUID getId() { return id; }
+    public void setId(UUID id) { this.id = id; }
 
-    public String getName() { return name; }
-    public void setName(String name) { this.name = name; }
+    public String getFlowerName() { return flowerName; }
+    public void setFlowerName(String flowerName) { this.flowerName = flowerName; }
 
-    public String getVariety() { return variety; }
-    public void setVariety(String variety) { this.variety = variety; }
+    public String getSpecies() { return species; }
+    public void setSpecies(String species) { this.species = species; }
+
+    public Double getPrice() { return price; }
+    public void setPrice(Double price) { this.price = price; }
 
     public Integer getStock() { return stock; }
     public void setStock(Integer stock) { this.stock = stock; }
 
-    public Double getPrice() { return price; }
-    public void setPrice(Double price) { this.price = price; }
+    public String getDescription() { return description; }
+    public void setDescription(String description) { this.description = description; }
 
     public MultipartFile getImage() { return image; }
     public void setImage(MultipartFile image) { this.image = image; }

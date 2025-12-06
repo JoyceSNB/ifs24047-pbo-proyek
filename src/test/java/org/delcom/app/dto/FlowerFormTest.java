@@ -1,29 +1,33 @@
 package org.delcom.app.dto;
 
-import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 import org.springframework.mock.web.MockMultipartFile;
-import org.springframework.web.multipart.MultipartFile;
+import java.util.UUID;
+import static org.junit.jupiter.api.Assertions.*;
 
-public class FlowerFormTest {
+class FlowerFormTest {
 
     @Test
     void testFlowerForm() {
         FlowerForm form = new FlowerForm();
-        MultipartFile file = new MockMultipartFile("file", "test.jpg", "image/jpeg", "content".getBytes());
+        UUID id = UUID.randomUUID();
+        MockMultipartFile file = new MockMultipartFile("file", "test.jpg", "image/jpeg", "content".getBytes());
 
-        form.setId(1L);
-        form.setName("Anggrek");
-        form.setVariety("Bulan");
-        form.setStock(5);
-        form.setPrice(100000.0);
+        form.setId(id);
+        form.setFlowerName("Melati");
+        form.setSpecies("Jasminum sambac");
+        form.setPrice(25000.0);
+        form.setStock(100);
+        form.setDescription("Wangi semerbak");
         form.setImage(file);
 
-        Assertions.assertEquals(1L, form.getId());
-        Assertions.assertEquals("Anggrek", form.getName());
-        Assertions.assertEquals("Bulan", form.getVariety());
-        Assertions.assertEquals(5, form.getStock());
-        Assertions.assertEquals(100000.0, form.getPrice());
-        Assertions.assertEquals(file, form.getImage());
+        assertEquals(id, form.getId());
+        assertEquals("Melati", form.getFlowerName());
+        assertEquals("Jasminum sambac", form.getSpecies());
+        assertEquals(25000.0, form.getPrice());
+        assertEquals(100, form.getStock());
+        assertEquals("Wangi semerbak", form.getDescription());
+        assertNotNull(form.getImage());
+        assertEquals("test.jpg", form.getImage().getOriginalFilename());
     }
 }

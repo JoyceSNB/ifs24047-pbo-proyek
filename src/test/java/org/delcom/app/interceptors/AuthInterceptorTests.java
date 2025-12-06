@@ -1,161 +1,145 @@
 package org.delcom.app.interceptors;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertTrue;
-import static org.mockito.Mockito.when;
-
-import java.io.PrintWriter;
-import java.io.StringWriter;
-import java.util.Date;
-import java.util.UUID;
-
 import org.delcom.app.configs.AuthContext;
 import org.delcom.app.entities.AuthToken;
 import org.delcom.app.entities.User;
 import org.delcom.app.services.AuthTokenService;
 import org.delcom.app.services.UserService;
 import org.delcom.app.utils.JwtUtil;
-import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.mockito.Mockito;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.InjectMocks;
+import org.mockito.Mock;
+import org.mockito.junit.jupiter.MockitoExtension;
 
-import io.jsonwebtoken.Jwts;
+import io.jsonwebtoken.Jwts; 
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
+import java.io.PrintWriter;
+import java.io.StringWriter;
+import java.util.UUID;
 
-public class AuthInterceptorTests {
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.Mockito.*;
+
+@ExtendWith(MockitoExtension.class)
+class AuthInterceptorTests {
+
+    @Mock private AuthContext authContext;
+    @Mock private AuthTokenService authTokenService;
+    @Mock private UserService userService;
+    @Mock private HttpServletRequest request;
+    @Mock private HttpServletResponse response;
+
+    @InjectMocks private AuthInterceptor interceptor;
+
+    @BeforeEach
+    void setUp() throws Exception {
+        lenient().when(response.getWriter()).thenReturn(new PrintWriter(new StringWriter()));
+    }
 
     @Test
-    @DisplayName("Pengujian AuthInterceptor dengan berbagai skenario")
-    public void testVariousAuthInterceptor() throws Exception {
+    void preHandle_PublicEndpoint_Auth() throws Exception {
+        when(request.getRequestURI()).thenReturn("/api/auth/login");
+        assertTrue(interceptor.preHandle(request, response, null));
+    }
 
-        UUID userId = UUID.randomUUID();
-        String bearerToken = JwtUtil.generateToken(userId);
-        AuthToken authToken = new AuthToken(userId, bearerToken);
+    @Test
+    void preHandle_PublicEndpoint_Error() throws Exception {
+        when(request.getRequestURI()).thenReturn("/error");
+        assertTrue(interceptor.preHandle(request, response, null));
+    }
 
-        User user = new User("testuser", "testuser@example.com");
-        user.setId(userId);
+    @Test
+    void preHandle_NoHeader() throws Exception {
+        when(request.getRequestURI()).thenReturn("/api/protected");
+        when(request.getHeader("Authorization")).thenReturn(null);
+        assertFalse(interceptor.preHandle(request, response, null));
+    }
 
-        // Mock AuthTokenService
-        AuthTokenService authTokenService = Mockito.mock(AuthTokenService.class);
+    @Test
+    void preHandle_BadHeaderFormat() throws Exception {
+        when(request.getRequestURI()).thenReturn("/api/protected");
+        when(request.getHeader("Authorization")).thenReturn("Basic 123456"); 
+        assertFalse(interceptor.preHandle(request, response, null));
+    }
 
-        // Mock UserService
-        UserService userService = Mockito.mock(UserService.class);
+    @Test
+    void preHandle_EmptyToken() throws Exception {
+        when(request.getRequestURI()).thenReturn("/api/protected");
+        when(request.getHeader("Authorization")).thenReturn("Bearer "); 
+        assertFalse(interceptor.preHandle(request, response, null));
+    }
+    
+    @Test
+    void preHandle_InvalidJwtSignature() throws Exception {
+        when(request.getRequestURI()).thenReturn("/api/protected");
+        when(request.getHeader("Authorization")).thenReturn("Bearer invalid.token.here");
+        assertFalse(interceptor.preHandle(request, response, null));
+    }
 
-        // Mock HttpServletRequest
-        HttpServletRequest request = Mockito.mock(HttpServletRequest.class);
+    @Test
+    void preHandle_NonUUIDTokenSubject() throws Exception {
+        String token = Jwts.builder()
+                .subject("bukan-uuid-valid") 
+                .signWith(JwtUtil.getKey())
+                .compact();
+        
+        when(request.getRequestURI()).thenReturn("/api/protected");
+        when(request.getHeader("Authorization")).thenReturn("Bearer " + token);
+        
+        assertFalse(interceptor.preHandle(request, response, null));
+    }
 
-        // Mock HttpServletResponse
-        HttpServletResponse response = Mockito.mock(HttpServletResponse.class);
-        Mockito.when(response.getWriter()).thenReturn(new PrintWriter(new StringWriter()));
+    @Test
+    void preHandle_TokenNotFoundInDB() throws Exception {
+        UUID uid = UUID.randomUUID();
+        String token = JwtUtil.generateToken(uid);
+        
+        when(request.getRequestURI()).thenReturn("/api/protected");
+        when(request.getHeader("Authorization")).thenReturn("Bearer " + token);
+        
+        when(authTokenService.findUserToken(any(), anyString())).thenReturn(null);
 
-        // Instance AuthInterceptor dengan service palsu
-        AuthInterceptor authInterceptor = new AuthInterceptor();
-        authInterceptor.authTokenService = authTokenService;
-        authInterceptor.userService = userService;
-        authInterceptor.authContext = new AuthContext();
+        assertFalse(interceptor.preHandle(request, response, null));
+    }
 
-        // Menguji method preHandle yang berhasil
-        {
-            // Mocking behavior dari authTokenService
-            when(authTokenService.findUserToken(Mockito.any(UUID.class), Mockito.anyString()))
-                    .thenReturn(authToken);
+    @Test
+    void preHandle_UserNotFound() throws Exception {
+        UUID uid = UUID.randomUUID();
+        String token = JwtUtil.generateToken(uid);
+        
+        when(request.getRequestURI()).thenReturn("/api/protected");
+        when(request.getHeader("Authorization")).thenReturn("Bearer " + token);
+        
+        AuthToken authToken = new AuthToken();
+        authToken.setUserId(uid);
+        when(authTokenService.findUserToken(any(), anyString())).thenReturn(authToken);
+        
+        when(userService.getUserById(uid)).thenReturn(null);
 
-            // Mocking behavior dari userService
-            when(userService.getUserById(userId)).thenReturn(user);
+        assertFalse(interceptor.preHandle(request, response, null));
+    }
 
-            // Mocking behavior dari request
-            when(request.getRequestURI()).thenReturn("/api/users/me");
-            when(request.getHeader("Authorization")).thenReturn("Bearer " + bearerToken);
+    @Test
+    void preHandle_Success() throws Exception {
+        UUID uid = UUID.randomUUID();
+        String token = JwtUtil.generateToken(uid);
+        
+        when(request.getRequestURI()).thenReturn("/api/protected");
+        when(request.getHeader("Authorization")).thenReturn("Bearer " + token);
+        
+        AuthToken authToken = new AuthToken();
+        authToken.setUserId(uid);
+        when(authTokenService.findUserToken(any(), anyString())).thenReturn(authToken);
+        when(userService.getUserById(uid)).thenReturn(new User());
 
-            boolean isPublic = authInterceptor.preHandle(request, response, null);
-            assertTrue(isPublic);
-        }
-
-        // Menguji method preHandle yang berhasil dengan path public
-        {
-            // Mocking behavior dari request
-            when(request.getRequestURI()).thenReturn("/api/auth");
-            boolean isPublic = authInterceptor.preHandle(request, response, null);
-            assertTrue(isPublic);
-
-            when(request.getRequestURI()).thenReturn("/error");
-            isPublic = authInterceptor.preHandle(request, response, null);
-            assertTrue(isPublic);
-        }
-
-        // Menguji method preHandle yang tidak valid dengan token null
-        {
-            // Mocking behavior dari request
-            when(request.getRequestURI()).thenReturn("/api/users/me");
-
-            // Header Authorization null
-            when(request.getHeader("Authorization")).thenReturn(null);
-            boolean isAuth = authInterceptor.preHandle(request, response, null);
-            assertEquals(false, isAuth);
-
-            // Header Authorization kosong
-            when(request.getHeader("Authorization")).thenReturn("");
-            isAuth = authInterceptor.preHandle(request, response, null);
-            assertEquals(false, isAuth);
-
-            // Header Authorization empty
-            when(request.getHeader("Authorization")).thenReturn("Bearer ");
-            isAuth = authInterceptor.preHandle(request, response, null);
-            assertEquals(false, isAuth);
-
-            // Header Authorization tidak valid
-            when(request.getHeader("Authorization")).thenReturn("Bearer invalid_token");
-            isAuth = authInterceptor.preHandle(request, response, null);
-            assertEquals(false, isAuth);
-        }
-
-        // Menguji method preHandle dengan extract user id gagal
-        {
-            String invalidToken = Jwts.builder()
-                    .subject(userId.toString() + "invalid")
-                    .issuedAt(new Date(System.currentTimeMillis() - 1000 * 60 * 60 * 3)) // 3 jam yang lalu
-                    .expiration(new Date(System.currentTimeMillis() - 1000 * 60 * 60 * 1)) // expired 1 jam yang lalu
-                    .signWith(JwtUtil.getKey()) // Perlu menambahkan method getKey() di JwtUtil
-                    .compact();
-
-            // Mocking behavior dari request
-            when(request.getRequestURI()).thenReturn("/api/users/me");
-            when(request.getHeader("Authorization")).thenReturn("Bearer " + invalidToken);
-
-            boolean isAuth = authInterceptor.preHandle(request, response, null);
-            assertEquals(false, isAuth);
-        }
-
-        // Menguji method preHandle yang tidak valid dengan token tidak ditemukan
-        {
-            // Mocking behavior dari request
-            when(request.getRequestURI()).thenReturn("/api/users/me");
-            when(request.getHeader("Authorization")).thenReturn("Bearer " + bearerToken);
-
-            // Token tidak ditemukan di database
-            when(authTokenService.findUserToken(Mockito.any(UUID.class), Mockito.anyString()))
-                    .thenReturn(null);
-
-            boolean isPublic = authInterceptor.preHandle(request, response, null);
-            assertEquals(false, isPublic);
-        }
-
-        // Menguji method preHandle yang tidak valid dengan user tidak ditemukan
-        {
-            // Mocking behavior dari request
-            when(request.getRequestURI()).thenReturn("/api/users/me");
-            when(request.getHeader("Authorization")).thenReturn("Bearer " + bearerToken);
-
-            // Mocking behavior dari authTokenService
-            when(authTokenService.findUserToken(Mockito.any(UUID.class), Mockito.anyString()))
-                    .thenReturn(authToken);
-
-            // User tidak ditemukan
-            when(userService.getUserById(userId)).thenReturn(null);
-
-            boolean isPublic = authInterceptor.preHandle(request, response, null);
-            assertEquals(false, isPublic);
-        }
+        assertTrue(interceptor.preHandle(request, response, null));
+        verify(authContext).setAuthUser(any(User.class));
     }
 }
+
