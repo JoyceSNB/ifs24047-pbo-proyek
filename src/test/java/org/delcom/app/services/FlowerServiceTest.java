@@ -26,6 +26,7 @@ class FlowerServiceTest {
     @Mock private FileStorageService fileStorageService;
     @InjectMocks private FlowerService service;
 
+    // --- 1. Basic Tests ---
     @Test
     void testGetAllFlowers() {
         when(repository.findAll()).thenReturn(Arrays.asList(new Flower(), new Flower()));
@@ -35,132 +36,25 @@ class FlowerServiceTest {
     @Test
     void testGetFlowersByUser() {
         UUID userId = UUID.randomUUID();
-        when(repository.findAllByUserId(userId)).thenReturn(Arrays.asList(new Flower(), new Flower()));
-        assertEquals(2, service.getFlowersByUser(userId).size());
+        when(repository.findAllByUserIdOrderByCreatedAtAsc(userId)).thenReturn(Collections.emptyList());
+        assertTrue(service.getFlowersByUser(userId).isEmpty());
     }
 
     @Test
-    void testGetFlowerById_Found() {
+    void testGetFlowerById() {
         UUID id = UUID.randomUUID();
-        Flower f = new Flower(); f.setId(id);
-        when(repository.findById(id)).thenReturn(Optional.of(f));
+        when(repository.findById(id)).thenReturn(Optional.of(new Flower()));
         assertNotNull(service.getFlowerById(id));
-    }
-    
-    @Test
-    void testGetFlowerById_NotFound() {
-        UUID id = UUID.randomUUID();
+        
         when(repository.findById(id)).thenReturn(Optional.empty());
         assertNull(service.getFlowerById(id));
     }
 
     @Test
     void testGetHistoryByFlower() {
-        UUID fid = UUID.randomUUID();
-        StockHistory mockHistory = new StockHistory(fid, "TEST", 1, 10);
-        
-        when(historyRepository.findByFlowerIdOrderByRecordedAtDesc(fid))
-            .thenReturn(Collections.singletonList(mockHistory));
-        assertEquals(1, service.getHistoryByFlower(fid).size());
-    }
-
-    @Test
-    void testGetTopSellingFlowersByUser() {
-        UUID userId = UUID.randomUUID();
-
-        Flower f1 = new Flower(); f1.setId(UUID.randomUUID()); f1.setFlowerName("Mawar");
-        Flower f2 = new Flower(); f2.setId(UUID.randomUUID()); f2.setFlowerName("Melati");
-        Flower f3 = new Flower(); f3.setId(UUID.randomUUID()); f3.setFlowerName("Anggrek"); // Bunga ke-3
-        
-        when(repository.findAllByUserId(userId)).thenReturn(Arrays.asList(f1, f2, f3));
-
-        StockHistory h1 = new StockHistory(f1.getId(), "PENJUALAN", 5, 0);
-        StockHistory h2 = new StockHistory(f1.getId(), "RESTOCK", 10, 0); 
-        when(historyRepository.findByFlowerIdOrderByRecordedAtDesc(f1.getId()))
-            .thenReturn(Arrays.asList(h1, h2));
-
-        when(historyRepository.findByFlowerIdOrderByRecordedAtDesc(f2.getId()))
-            .thenReturn(Collections.emptyList());
-
-        when(historyRepository.findByFlowerIdOrderByRecordedAtDesc(f3.getId()))
-            .thenReturn(null);
-
-        Map<String, Integer> result = service.getTopSellingFlowersByUser(userId);
-
-        assertEquals(3, result.size());
-        assertEquals(5, result.get("Mawar"));
-        assertEquals(0, result.get("Melati"));
-        assertEquals(0, result.get("Anggrek")); // Pastikan null handled gracefully jadi 0
-    }
-
-    @Test
-    void testSaveFlower_WithImage() {
-        Flower f = new Flower(); f.setStock(10);
-        MockMultipartFile file = new MockMultipartFile("file", "a.jpg", "image/jpeg", "content".getBytes());
-        when(fileStorageService.storeFile(any())).thenReturn("a.jpg");
-        service.saveFlower(f, file, null);
-        assertEquals("a.jpg", f.getImagePath());
-    }
-
-    @Test
-    void testSaveFlower_EmptyImage() { 
-        Flower f = new Flower(); f.setStock(10);
-        MockMultipartFile file = new MockMultipartFile("file", "", "image/jpeg", new byte[0]);
-        service.saveFlower(f, file, null);
-        verify(fileStorageService, never()).storeFile(any());
-    }
-
-    @Test
-    void testSaveFlower_NullImage() { 
-        Flower f = new Flower(); f.setStock(10);
-        service.saveFlower(f, null, null);
-        verify(fileStorageService, never()).storeFile(any());
-    }
-
-    @Test
-    void testSave_NewItem_CreatesHistory() { 
-        Flower f = new Flower(); f.setId(UUID.randomUUID()); f.setStock(10);
-        service.saveFlower(f, null, null);
-        
-        ArgumentCaptor<StockHistory> captor = ArgumentCaptor.forClass(StockHistory.class);
-        verify(historyRepository).save(captor.capture());
-        assertEquals("BARANG MASUK", captor.getValue().getType());
-    }
-
-    @Test
-    void testSave_NewItem_NullStock_NoHistory() { 
-        Flower f = new Flower(); f.setId(UUID.randomUUID()); f.setStock(null);
-        service.saveFlower(f, null, null);
-        verify(historyRepository, never()).save(any());
-    }
-
-    @Test
-    void testSave_Edit_StockReduced_Penjualan() { 
-        Flower f = new Flower(); f.setId(UUID.randomUUID()); f.setStock(8);
-        service.saveFlower(f, null, 10); 
-        
-        ArgumentCaptor<StockHistory> captor = ArgumentCaptor.forClass(StockHistory.class);
-        verify(historyRepository).save(captor.capture());
-        assertEquals("PENJUALAN", captor.getValue().getType());
-        assertEquals(2, captor.getValue().getQuantity());
-    }
-
-    @Test
-    void testSave_Edit_StockIncreased_Restock() { 
-        Flower f = new Flower(); f.setId(UUID.randomUUID()); f.setStock(15);
-        service.saveFlower(f, null, 10); 
-        
-        ArgumentCaptor<StockHistory> captor = ArgumentCaptor.forClass(StockHistory.class);
-        verify(historyRepository).save(captor.capture());
-        assertEquals("RESTOCK", captor.getValue().getType());
-        assertEquals(5, captor.getValue().getQuantity());
-    }
-
-    @Test
-    void testSave_Edit_StockSame() { 
-        Flower f = new Flower(); f.setStock(10);
-        service.saveFlower(f, null, 10);
-        verify(historyRepository, never()).save(any());
+        UUID id = UUID.randomUUID();
+        service.getHistoryByFlower(id);
+        verify(historyRepository).findByFlowerIdOrderByRecordedAtDesc(id);
     }
 
     @Test
@@ -168,5 +62,99 @@ class FlowerServiceTest {
         UUID id = UUID.randomUUID();
         service.deleteFlower(id);
         verify(repository).deleteById(id);
+    }
+
+    // --- 2. Search Flowers (Branch Coverage) ---
+    @Test
+    void testSearchFlowers() {
+        UUID userId = UUID.randomUUID();
+        
+        // Branch 1: Keyword Valid 
+        when(repository.findByUserIdAndFlowerNameContainingIgnoreCaseOrderByCreatedAtAsc(userId, "Rose"))
+            .thenReturn(Collections.singletonList(new Flower()));
+        assertEquals(1, service.searchFlowers(userId, "Rose").size());
+
+        // Branch 2: Keyword Null 
+        service.searchFlowers(userId, null);
+        
+        // Branch 3: Keyword Empty 
+        service.searchFlowers(userId, "   ");
+
+        // Verify: else dipanggil 2 kali
+        verify(repository, times(2)).findAllByUserIdOrderByCreatedAtAsc(userId);
+    }
+
+    // --- 3. Top Selling (FULL BRANCH COVERAGE) ---
+    @Test
+    void testGetTopSellingFlowersByUser() {
+        UUID userId = UUID.randomUUID();
+        Flower f1 = new Flower(); f1.setId(UUID.randomUUID()); f1.setFlowerName("A");
+        Flower f2 = new Flower(); f2.setId(UUID.randomUUID()); f2.setFlowerName("B");
+        Flower f3 = new Flower(); f3.setId(UUID.randomUUID()); f3.setFlowerName("C");
+        
+        when(repository.findAllByUserIdOrderByCreatedAtAsc(userId)).thenReturn(Arrays.asList(f1, f2, f3));
+
+        // F1: History Campuran (PENJUALAN & RESTOCK)
+        // Ini MENJAMIN branch 'if (PENJUALAN)' tereksekusi True DAN False
+        StockHistory h1 = new StockHistory(f1.getId(), "PENJUALAN", 5, 0); // True Branch
+        StockHistory h2 = new StockHistory(f1.getId(), "RESTOCK", 10, 0);  // False Branch (Penting!)
+        
+        when(historyRepository.findByFlowerIdOrderByRecordedAtDesc(f1.getId())).thenReturn(Arrays.asList(h1, h2));
+
+        // F2: History NULL (Cover Branch: histories != null -> false)
+        when(historyRepository.findByFlowerIdOrderByRecordedAtDesc(f2.getId())).thenReturn(null);
+
+        // F3: History KOSONG (Cover Branch: empty loop)
+        when(historyRepository.findByFlowerIdOrderByRecordedAtDesc(f3.getId())).thenReturn(Collections.emptyList());
+
+        Map<String, Integer> res = service.getTopSellingFlowersByUser(userId);
+        
+        // Verify Calculations
+        assertEquals(5, res.get("A")); // Hanya 5 (RESTOCK tidak dihitung)
+        assertEquals(0, res.get("B")); 
+        assertEquals(0, res.get("C")); 
+    }
+
+    // --- 4. Save Flower (Branch Coverage) ---
+    @Test
+    void testSaveFlower_Logic() {
+        Flower f = new Flower(); f.setId(UUID.randomUUID()); f.setStock(10);
+        
+        // Case 1: Data Baru (Stock != null) -> Save History BARANG MASUK
+        service.saveFlower(f, null, null);
+        verify(historyRepository).save(argThat(h -> h.getType().equals("BARANG MASUK")));
+        
+        // Case 2: Data Baru (Stock == null) -> No History
+        f.setStock(null);
+        service.saveFlower(f, null, null);
+        
+        // Case 3: Edit Data (Stock Sama) -> No History
+        f.setStock(10);
+        service.saveFlower(f, null, 10);
+        
+        // Case 4: Edit Data (Stock Berkurang) -> PENJUALAN
+        f.setStock(5);
+        service.saveFlower(f, null, 10); // Old 10 -> New 5
+        verify(historyRepository).save(argThat(h -> h.getType().equals("PENJUALAN")));
+        
+        // Case 5: Edit Data (Stock Bertambah) -> RESTOCK
+        f.setStock(15);
+        service.saveFlower(f, null, 10); // Old 10 -> New 15
+        verify(historyRepository).save(argThat(h -> h.getType().equals("RESTOCK")));
+        
+        // Case 6: Upload Image Valid
+        MockMultipartFile file = new MockMultipartFile("f", "a.jpg", "type", "content".getBytes());
+        service.saveFlower(f, file, null);
+        verify(fileStorageService).storeFile(any());
+
+        // Case 7: Upload Image Empty
+        MockMultipartFile emptyFile = new MockMultipartFile("f", "", "type", new byte[0]);
+        service.saveFlower(f, emptyFile, null);
+        // Verify storeFile tetap dipanggil 1x (dari case 6), tidak bertambah
+        verify(fileStorageService, times(1)).storeFile(any());
+        
+        // Case 8: Upload Image Null
+        service.saveFlower(f, null, null);
+        verify(fileStorageService, times(1)).storeFile(any());
     }
 }

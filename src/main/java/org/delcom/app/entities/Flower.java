@@ -52,7 +52,6 @@ public class Flower {
         this.updatedAt = LocalDateTime.now();
     }
 
-    // --- GETTERS & SETTERS ---
     public UUID getId() { return id; }
     public void setId(UUID id) { this.id = id; }
 

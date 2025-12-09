@@ -23,16 +23,23 @@ public class FlowerService {
     private StockHistoryRepository historyRepository;
 
     @Autowired
-    private FileStorageService fileStorageService; 
+    private FileStorageService fileStorageService;
 
     public List<Flower> getAllFlowers() {
         return repository.findAll();
     }
 
     public List<Flower> getFlowersByUser(UUID userId) {
-        return repository.findAllByUserId(userId);
+        return repository.findAllByUserIdOrderByCreatedAtAsc(userId);
     }
     
+    public List<Flower> searchFlowers(UUID userId, String keyword) {
+        if (keyword != null && !keyword.trim().isEmpty()) {
+            return repository.findByUserIdAndFlowerNameContainingIgnoreCaseOrderByCreatedAtAsc(userId, keyword.trim());
+        }
+        return repository.findAllByUserIdOrderByCreatedAtAsc(userId);
+    }
+
     public Flower getFlowerById(UUID id) {
         return repository.findById(id).orElse(null);
     }
@@ -42,12 +49,11 @@ public class FlowerService {
     }
 
     public Map<String, Integer> getTopSellingFlowersByUser(UUID userId) {
-        List<Flower> flowers = getFlowersByUser(userId); 
+        List<Flower> flowers = getFlowersByUser(userId);
         Map<String, Integer> salesData = new HashMap<>();
 
         for (Flower flower : flowers) {
             List<StockHistory> histories = historyRepository.findByFlowerIdOrderByRecordedAtDesc(flower.getId());
-            
             int totalSold = 0;
             if (histories != null) {
                 for (StockHistory h : histories) {

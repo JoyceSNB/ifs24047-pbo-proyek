@@ -39,16 +39,11 @@ public class HomeController {
         }
 
         model.addAttribute("auth", currentUser);
-
-        // --- [PERBAIKAN DI SINI] ---
-        // Ganti getAllFlowers() jadi getFlowersByUser(id)
         model.addAttribute("listFlowers", flowerService.getFlowersByUser(currentUser.getId()));
 
-        // Ganti getTopSellingFlowers() jadi getTopSellingFlowersByUser(id)
         Map<String, Integer> salesMap = flowerService.getTopSellingFlowersByUser(currentUser.getId());
-        // ---------------------------
-
         List<Map.Entry<String, Integer>> sortedList = new ArrayList<>(salesMap.entrySet());
+        
         sortedList.sort((a, b) -> b.getValue().compareTo(a.getValue()));
 
         List<String> salesNames = new ArrayList<>();

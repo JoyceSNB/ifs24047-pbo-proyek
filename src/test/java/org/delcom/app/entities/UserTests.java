@@ -40,4 +40,3 @@ class UserTests {
         assertNotNull(user.getUpdatedAt());
     }
 }
-

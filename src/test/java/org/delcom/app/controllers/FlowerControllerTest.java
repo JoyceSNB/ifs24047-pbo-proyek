@@ -80,7 +80,7 @@ class FlowerControllerTest {
     // --- Branch 1: Auth Null ---
     @Test
     void testSaveFlower_Auth_Null() throws Exception {
-        SecurityContextHolder.clearContext(); // Pastikan kosong
+        SecurityContextHolder.clearContext(); 
         mockMvc.perform(multipart("/flowers/save").param("flowerName", "Test"))
                 .andExpect(status().is3xxRedirection())
                 .andExpect(redirectedUrl("/auth/login")); 
@@ -122,7 +122,7 @@ class FlowerControllerTest {
         verify(flowerService, never()).saveFlower(any(), any(), any());
     }
 
-    // --- Happy Path: Create New Flower ---
+    // --- Create New Flower ---
     @Test
     void testSaveFlower_Success_CreateNew() throws Exception {
         setAuthenticatedUser(mockUser);
@@ -140,8 +140,7 @@ class FlowerControllerTest {
         verify(flowerService).saveFlower(any(Flower.class), eq(image), eq(null));
     }
 
-    // --- Happy Path: Edit Existing Flower ---
-    // (Branch Coverage: flower != null && flower.getUserId() != null)
+    // --- Edit Existing Flower ---
     @Test
     void testSaveFlower_Success_EditExisting() throws Exception {
         setAuthenticatedUser(mockUser);
@@ -149,7 +148,7 @@ class FlowerControllerTest {
         
         Flower existingFlower = new Flower();
         existingFlower.setId(flowerId);
-        existingFlower.setUserId(mockUser.getId()); // UserId sudah ada
+        existingFlower.setUserId(mockUser.getId()); 
         existingFlower.setStock(10); 
         
         when(flowerService.getFlowerById(flowerId)).thenReturn(existingFlower);
@@ -165,30 +164,25 @@ class FlowerControllerTest {
         verify(flowerService).saveFlower(any(Flower.class), any(), eq(10));
     }
 
-    // --- Branch Coverage: Edit Flow but Flower Not Found (ID exists in param, but DB returns null) ---
-    // Ini menutup celah di blok if(form.getId() != null) -> else
+    // --- Edit Flow but Flower Not Found 
     @Test
     void testSaveFlower_Edit_FlowerNotFound_CreatesNew() throws Exception {
         setAuthenticatedUser(mockUser);
         UUID fakeId = UUID.randomUUID();
         
-        // Simulasi bunga tidak ditemukan meski ID dikirim
         when(flowerService.getFlowerById(fakeId)).thenReturn(null);
 
         mockMvc.perform(multipart("/flowers/save")
-                .param("id", fakeId.toString()) // Kirim ID
+                .param("id", fakeId.toString()) 
                 .param("flowerName", "Ghost Flower")
                 .param("species", "Unknown")
                 .param("price", "1000")
                 .param("stock", "1"))
                 .andExpect(status().is3xxRedirection());
 
-        // Verifikasi bahwa oldStock null (karena dianggap baru)
         verify(flowerService).saveFlower(any(Flower.class), any(), eq(null));
     }
 
-    // --- Branch Coverage: Edit Flow but UserId is Null ---
-    // Ini menutup celah di if(flower.getUserId() == null) -> setUserId
     @Test
     void testSaveFlower_Edit_NullUserId_SetsCurrentUser() throws Exception {
         setAuthenticatedUser(mockUser);
@@ -197,7 +191,7 @@ class FlowerControllerTest {
         Flower existingFlower = new Flower();
         existingFlower.setId(flowerId);
         existingFlower.setStock(5);
-        existingFlower.setUserId(null); // Case dimana UserId null
+        existingFlower.setUserId(null); 
 
         when(flowerService.getFlowerById(flowerId)).thenReturn(existingFlower);
 
@@ -209,7 +203,6 @@ class FlowerControllerTest {
                 .param("stock", "5"))
                 .andExpect(status().is3xxRedirection());
 
-        // Verifikasi bahwa userId di-set ke current user
         verify(flowerService).saveFlower(argThat(f -> f.getUserId().equals(mockUser.getId())), any(), eq(5));
     }
 

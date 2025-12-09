@@ -19,21 +19,21 @@ public class StockHistory {
     private String type; 
 
     @Column(nullable = false)
-    private Integer quantity; 
+    private Integer quantity;
 
     @Column(nullable = false)
-    private Integer finalStock; 
+    private Integer finalStock;
 
     @Column(nullable = false)
     private LocalDateTime recordedAt;
 
     @PrePersist
-    protected void onCreate() {
+    public void onCreate() { 
         this.recordedAt = LocalDateTime.now();
     }
 
-    // Constructor
     public StockHistory() {}
+
     public StockHistory(UUID flowerId, String type, Integer quantity, Integer finalStock) {
         this.flowerId = flowerId;
         this.type = type;
@@ -41,12 +41,19 @@ public class StockHistory {
         this.finalStock = finalStock;
     }
 
-    // Getters
+    // Getter
     public UUID getId() { return id; }
     public UUID getFlowerId() { return flowerId; }
     public String getType() { return type; }
     public Integer getQuantity() { return quantity; }
     public Integer getFinalStock() { return finalStock; }
     public LocalDateTime getRecordedAt() { return recordedAt; }
-}
 
+    // Setter
+    public void setId(UUID id) { this.id = id; }
+    public void setFlowerId(UUID flowerId) { this.flowerId = flowerId; }
+    public void setType(String type) { this.type = type; }
+    public void setQuantity(Integer quantity) { this.quantity = quantity; }
+    public void setFinalStock(Integer finalStock) { this.finalStock = finalStock; }
+    public void setRecordedAt(LocalDateTime recordedAt) { this.recordedAt = recordedAt; }
+}

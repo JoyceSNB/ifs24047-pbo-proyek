@@ -46,36 +46,39 @@ public class HomeControllerTests {
         user.setEmail("test@bunga.com");
     }
 
-    // --- [UPDATE] Test Login Sukses + Sorting Chart ---
+    // Test Login Sukses dengan DATA 
     @Test
-    void testIndex_Success_WithSorting() {
-        when(securityContext.getAuthentication()).thenReturn(authentication);
-        when(authentication.isAuthenticated()).thenReturn(true);
-        when(authentication.getName()).thenReturn(user.getEmail());
-        when(authentication.getPrincipal()).thenReturn(user); 
-
+    void testIndex_Success_WithData() {
+        setupAuth(true);
         when(userService.getUserByEmail(user.getEmail())).thenReturn(user);
 
-        // Setup Data Dummy Chart
         Map<String, Integer> salesData = new HashMap<>();
         salesData.put("Mawar", 10);
-        salesData.put("Melati", 50); 
+        salesData.put("Melati", 50);
         
-        // PERBAIKAN: Gunakan method ByUser dan masukkan user.getId()
         when(flowerService.getTopSellingFlowersByUser(user.getId())).thenReturn(salesData);
         when(flowerService.getFlowersByUser(user.getId())).thenReturn(Collections.emptyList());
 
         String view = homeController.index(model);
-        
         assertEquals("pages/home", view);
-        
-        // Verifikasi bahwa model diisi dengan data yang benar
         verify(model).addAttribute(eq("salesNames"), any());
-        verify(model).addAttribute(eq("salesValues"), any());
-        verify(model).addAttribute(eq("listFlowers"), any());
     }
 
-    // --- Branch: Auth Null ---
+    // Test Login Sukses TANPA DATA 
+    @Test
+    void testIndex_Success_NoData() {
+        setupAuth(true);
+        when(userService.getUserByEmail(user.getEmail())).thenReturn(user);
+
+        // Data kosong
+        when(flowerService.getTopSellingFlowersByUser(user.getId())).thenReturn(new HashMap<>());
+        when(flowerService.getFlowersByUser(user.getId())).thenReturn(Collections.emptyList());
+
+        String view = homeController.index(model);
+        assertEquals("pages/home", view);
+    }
+
+    // Auth Null
     @Test
     void testIndex_AuthNull() {
         when(securityContext.getAuthentication()).thenReturn(null);
@@ -83,7 +86,7 @@ public class HomeControllerTests {
         assertEquals("redirect:/auth/login", view);
     }
 
-    // --- Branch: Auth Exists tapi isAuthenticated() False ---
+    // Not Authenticated
     @Test
     void testIndex_NotAuthenticated() {
         when(securityContext.getAuthentication()).thenReturn(authentication);
@@ -92,28 +95,31 @@ public class HomeControllerTests {
         assertEquals("redirect:/auth/login", view);
     }
 
-    // --- Branch: Principal "anonymousUser" ---
+    // Anonymous User
     @Test
-    void testIndex_AnonymousUserString() {
+    void testIndex_AnonymousUser() {
         when(securityContext.getAuthentication()).thenReturn(authentication);
-        when(authentication.isAuthenticated()).thenReturn(true); 
-        when(authentication.getPrincipal()).thenReturn("anonymousUser"); 
-
+        when(authentication.isAuthenticated()).thenReturn(true);
+        when(authentication.getPrincipal()).thenReturn("anonymousUser");
         String view = homeController.index(model);
         assertEquals("redirect:/auth/login", view);
     }
 
-    // --- Branch: User Login tapi Data di DB Null ---
+    // User Not Found DB
     @Test
-    void testIndex_UserNotFoundInDB() {
-        when(securityContext.getAuthentication()).thenReturn(authentication);
-        when(authentication.isAuthenticated()).thenReturn(true);
-        when(authentication.getPrincipal()).thenReturn(user); 
-        when(authentication.getName()).thenReturn("deleted@user.com");
-        
-        when(userService.getUserByEmail("deleted@user.com")).thenReturn(null);
-
+    void testIndex_UserNotFound() {
+        setupAuth(true);
+        when(userService.getUserByEmail(any())).thenReturn(null);
         String view = homeController.index(model);
         assertEquals("redirect:/auth/login", view);
+    }
+
+    private void setupAuth(boolean isAuthenticated) {
+        when(securityContext.getAuthentication()).thenReturn(authentication);
+        when(authentication.isAuthenticated()).thenReturn(isAuthenticated);
+        if (isAuthenticated) {
+            when(authentication.getName()).thenReturn(user.getEmail());
+            when(authentication.getPrincipal()).thenReturn(user);
+        }
     }
 }

@@ -11,7 +11,7 @@ class FlowerTest {
     void testFlowerEntity_AllAttributes() {
         Flower flower = new Flower();
         
-        // Setup Data Dummy (10 Atribut)
+        // 1. Setup Data Dummy (10 Atribut)
         UUID id = UUID.randomUUID();
         UUID userId = UUID.randomUUID();
         LocalDateTime now = LocalDateTime.now();
@@ -27,6 +27,7 @@ class FlowerTest {
         flower.setCreatedAt(now);
         flower.setUpdatedAt(now);
 
+        // 2. Assertions 
         assertEquals(id, flower.getId());
         assertEquals(userId, flower.getUserId());
         assertEquals("Anggrek Bulan", flower.getFlowerName());
@@ -43,12 +44,14 @@ class FlowerTest {
     void testLifecycleMethods() {
         Flower flower = new Flower();
         
+        // Test onCreate (PrePersist)
         flower.onCreate();
         assertNotNull(flower.getCreatedAt());
         assertNotNull(flower.getUpdatedAt());
 
+        // Test onUpdate (PreUpdate)
         LocalDateTime oldTime = flower.getUpdatedAt();
-
+        
         try { Thread.sleep(10); } catch (InterruptedException e) {}
         
         flower.onUpdate();

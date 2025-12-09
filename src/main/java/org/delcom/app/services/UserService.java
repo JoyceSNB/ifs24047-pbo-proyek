@@ -27,6 +27,7 @@ public class UserService implements UserDetailsService {
     @Override
     public UserDetails loadUserByUsername(String email) throws UsernameNotFoundException {
         String cleanEmail = (email != null) ? email.trim().toLowerCase() : "";
+
         User user = userRepository.findFirstByEmail(cleanEmail)
                 .orElseThrow(() -> new UsernameNotFoundException("User not found with email: " + cleanEmail));
 
@@ -55,7 +56,7 @@ public class UserService implements UserDetailsService {
     public User getUserById(UUID id) {
         return userRepository.findById(id).orElse(null);
     }
-
+    
     public boolean authenticate(String email, String rawPassword) {
         if (email == null || rawPassword == null) return false;
         return userRepository.findFirstByEmail(email.trim().toLowerCase())
