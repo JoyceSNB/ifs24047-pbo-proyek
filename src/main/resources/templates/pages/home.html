@@ -18,7 +18,7 @@
             --pink-soft: #fff5f8;
             --pink-border: #f8bbd0;
             --pink-hover: #fce4ec;
-            --card-bg: #fdf2f7;
+            --card-bg: #fdf2f7; /* Warna Pink Muda Kartu */
         }
 
         body {
@@ -30,7 +30,7 @@
             transition: all 0.3s ease;
             border: 1px solid rgb(254, 25, 135);
             border-radius: 15px;
-            background: var(--card-bg);
+            background: var(--card-bg); /* Pakai variabel biar sama */
             overflow: hidden;
             box-shadow: 0 4px 10px rgba(214, 51, 132, 0.05);
         }
@@ -141,7 +141,7 @@
             border-radius: 5px;
         }
 
-        /* --- LIST STATISTIK PINK --- */
+        /* --- [BARU] LIST STATISTIK PINK --- */
         .chart-list-container {
             border: 1px solid var(--pink-border);
             border-radius: 10px;
@@ -152,18 +152,19 @@
             cursor: pointer;
             transition: all 0.2s;
             border: none;
-            border-bottom: 1px solid white; 
+            border-bottom: 1px solid white; /* Garis putih biar rapi */
             color: #555;
             font-size: 0.9rem;
             
+            /* WARNA BACKGROUND PINK (SAMA DENGAN KARTU BUNGA) */
             background-color: var(--card-bg); 
         }
 
         .chart-list-item:hover {
-            background-color: var(--pink-border); 
+            background-color: var(--pink-border); /* Lebih gelap dikit pas hover */
             color: var(--pink-dark);
             font-weight: bold;
-            padding-left: 20px; 
+            padding-left: 20px; /* Efek geser */
         }
         
         .chart-list-item:last-child {
@@ -490,6 +491,7 @@
     </div>
 
     <script layout:fragment="others-js" th:inline="javascript">
+      /*<![CDATA[*/
 
       function safeText(val) { return (val && val !== 'null') ? val : '-'; }
       function formatDateTime(dateString) {
@@ -604,7 +606,7 @@
           }
       }
 
-      // --- CHART INTERACTIVITY
+      // --- CHART INTERACTIVITY: KLIK NAMA UNTUK SOROT CHART ---
       let highlightTargetName = "";
       function openChartFocus(div) {
           highlightTargetName = div.getAttribute("data-name");
@@ -612,6 +614,7 @@
           bsModal.show();
       }
 
+      // [FITUR BARU] Fungsi Sorot Chart saat Klik Nama di List (Dalam Modal)
       function highlightChart(flowerName) {
           if (!stockChartInstance) return;
           const idx = stockLabels.indexOf(flowerName);
@@ -622,8 +625,9 @@
           }
       }
 
-      var stockLabels = []; var stockData = []; stockLabels.push("Bunga"); stockData.push(0); 
-      var salesLabels = []; var salesData = []; salesLabels.push("Bunga"); salesData.push(0); 
+      // --- CHART CONFIGURATION ---
+      var stockLabels = []; var stockData = []; /*[# th:each="f : ${listFlowers}"]*/ stockLabels.push(/*[[${f.flowerName}]]*/ "Bunga"); stockData.push(/*[[${f.stock}]]*/ 0); /*[/]*/
+      var salesLabels = []; var salesData = []; /*[# th:each="name : ${salesNames}"]*/ salesLabels.push(/*[[${name}]]*/ "Bunga"); /*[/]*/ /*[# th:each="val : ${salesValues}"]*/ salesData.push(/*[[${val}]]*/ 0); /*[/]*/
       let stockChartInstance = null; let salesChartInstance = null;
       const pinkPalette = ['#d63384', '#e91e63', '#ec407a', '#f06292', '#f48fb1', '#f8bbd0', '#fce4ec'];
       
@@ -641,6 +645,7 @@
                       options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, cutout: '65%' } 
                   }); 
 
+                  // Jika dibuka dari nama bunga (luar)
                   if (highlightTargetName) {
                       const idx = stockLabels.indexOf(highlightTargetName);
                       if (idx !== -1) {
@@ -660,6 +665,7 @@
           }); 
       }
 
+      /*]]>*/
     </script>
   </body>
 </html>
