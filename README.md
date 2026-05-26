@@ -117,3 +117,7 @@ Institut Teknologi Del — Teknik Informatika
 ## 📝 Lisensi
 
 Proyek ini dibuat untuk keperluan **pendidikan** sebagai bagian dari mata kuliah PBO.
+
+# 🌸 Katalog Bunga — Aplikasi Web Manajemen Bunga
+
+![Java CI](https://github.com/JoyceSNB/ifs24047-pbo-proyek/actions/workflows/maven.yml/badge.svg)
