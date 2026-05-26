@@ -26,30 +26,42 @@ class ApplicationTest {
     private PasswordEncoder passwordEncoder;
 
     @InjectMocks
-    private Application application; 
+    private Application application;
 
     @Test
-    void testInit_Runner() throws Exception {
+    void testInit_WhenAdminNotExists() throws Exception {
         when(userRepository.findFirstByEmail("admin@bunga.com")).thenReturn(Optional.empty());
-        
         when(passwordEncoder.encode(anyString())).thenReturn("hashedPwd");
 
         CommandLineRunner runner = application.init(userRepository, passwordEncoder);
-  
         if (runner != null) {
             runner.run();
         }
 
         verify(userRepository, times(1)).save(any(User.class));
     }
-    
+
+    @Test
+    void testInit_WhenAdminAlreadyExists() throws Exception {
+        User existingAdmin = new User();
+        existingAdmin.setEmail("admin@bunga.com");
+        when(userRepository.findFirstByEmail("admin@bunga.com")).thenReturn(Optional.of(existingAdmin));
+
+        CommandLineRunner runner = application.init(userRepository, passwordEncoder);
+        if (runner != null) {
+            runner.run();
+        }
+
+        verify(userRepository, never()).save(any(User.class));
+    }
+
     @Test
     void testMain() {
-        try {
+        try (var mockedStatic = org.mockito.Mockito.mockStatic(org.springframework.boot.SpringApplication.class)) {
+            mockedStatic.when(() -> org.springframework.boot.SpringApplication.run(Application.class, new String[]{}))
+                    .thenReturn(null);
             Application.main(new String[]{});
-        } catch (Exception e) {
-            
+            mockedStatic.verify(() -> org.springframework.boot.SpringApplication.run(Application.class, new String[]{}));
         }
     }
 }
-

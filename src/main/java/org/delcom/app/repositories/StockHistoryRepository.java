@@ -10,4 +10,3 @@ import java.util.UUID;
 public interface StockHistoryRepository extends JpaRepository<StockHistory, UUID> {
     List<StockHistory> findByFlowerIdOrderByRecordedAtDesc(UUID flowerId);
 }
-

@@ -34,4 +34,3 @@ class StockHistoryRepositoryTest {
         assertTrue(list.stream().anyMatch(h -> h.getType().equals("RESTOCK")));
     }
 }
-
